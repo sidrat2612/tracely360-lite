@@ -27,6 +27,21 @@ def test_classify_pdf_in_xcassets_root_skipped():
 def test_classify_unknown_returns_none():
     assert classify_file(Path("archive.zip")) is None
 
+
+def test_classify_openapi_yaml_as_code(tmp_path):
+    spec = tmp_path / "openapi.yaml"
+    spec.write_text(
+        "openapi: 3.0.0\ninfo:\n  title: Demo\n  version: 1.0.0\npaths:\n  /ping:\n    get: {}\n",
+        encoding="utf-8",
+    )
+    assert classify_file(spec) == FileType.CODE
+
+
+def test_classify_generic_json_not_code(tmp_path):
+    data = tmp_path / "config.json"
+    data.write_text('{"name": "demo"}', encoding="utf-8")
+    assert classify_file(data) is None
+
 def test_classify_image():
     assert classify_file(Path("screenshot.png")) == FileType.IMAGE
     assert classify_file(Path("design.jpg")) == FileType.IMAGE
@@ -46,6 +61,18 @@ def test_detect_warns_small_corpus():
     result = detect(FIXTURES)
     assert result["needs_graph"] is False
     assert result["warning"] is not None
+
+
+def test_detect_includes_openapi_specs_in_code(tmp_path):
+    spec = tmp_path / "swagger.json"
+    spec.write_text(
+        '{"swagger":"2.0","info":{"title":"Legacy","version":"1.0"},"paths":{"/users":{"get":{}}}}',
+        encoding="utf-8",
+    )
+
+    result = detect(tmp_path)
+
+    assert str(spec) in result["files"]["code"]
 
 def test_detect_skips_dotfiles():
     result = detect(FIXTURES)

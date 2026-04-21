@@ -62,7 +62,9 @@ def test_collect_files_from_dir():
                  ".java", ".c", ".cpp", ".cc", ".cxx", ".rb",
                  ".cs", ".kt", ".kts", ".scala", ".php", ".h", ".hpp",
                  ".swift", ".lua", ".toc", ".zig", ".ps1", ".ex", ".exs",
-                 ".m", ".mm"}
+                 ".json", ".yaml", ".yml",
+                 ".m", ".mm", ".jl", ".jsx", ".mjs", ".vue", ".svelte",
+                 ".dart", ".v", ".sv"}
     assert all(f.suffix in supported for f in files)
     assert len(files) > 0
 
@@ -94,6 +96,21 @@ def test_collect_files_handles_circular_symlinks(tmp_path):
 
     files = collect_files(tmp_path, follow_symlinks=True)
     assert any(f.name == "mod.py" for f in files)
+
+
+def test_collect_files_includes_openapi_specs_only_when_valid(tmp_path):
+    valid_spec = tmp_path / "openapi.yaml"
+    valid_spec.write_text(
+        "openapi: 3.0.0\ninfo:\n  title: Demo\n  version: 1.0.0\npaths:\n  /ping:\n    get: {}\n",
+        encoding="utf-8",
+    )
+    generic_json = tmp_path / "package-lock.json"
+    generic_json.write_text('{"name": "demo"}', encoding="utf-8")
+
+    files = collect_files(tmp_path)
+
+    assert valid_spec in files
+    assert generic_json not in files
 
 
 def test_no_dangling_edges_on_extract():

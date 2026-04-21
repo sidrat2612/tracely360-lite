@@ -6,9 +6,9 @@ import time
 from pathlib import Path
 
 
-from tracely360.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS
+from tracely360.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS, OPENAPI_EXTENSIONS, _looks_like_openapi_spec
 
-_WATCHED_EXTENSIONS = CODE_EXTENSIONS | DOC_EXTENSIONS | PAPER_EXTENSIONS | IMAGE_EXTENSIONS
+_WATCHED_EXTENSIONS = CODE_EXTENSIONS | OPENAPI_EXTENSIONS | DOC_EXTENSIONS | PAPER_EXTENSIONS | IMAGE_EXTENSIONS
 _CODE_EXTENSIONS = CODE_EXTENSIONS
 
 
@@ -119,7 +119,14 @@ def _notify_only(watch_path: Path) -> None:
 
 
 def _has_non_code(changed_paths: list[Path]) -> bool:
-    return any(p.suffix.lower() not in _CODE_EXTENSIONS for p in changed_paths)
+    for path in changed_paths:
+        suffix = path.suffix.lower()
+        if suffix in _CODE_EXTENSIONS:
+            continue
+        if suffix in OPENAPI_EXTENSIONS and _looks_like_openapi_spec(path):
+            continue
+        return True
+    return False
 
 
 def watch(watch_path: Path, debounce: float = 3.0) -> None:
@@ -151,6 +158,8 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
                 return
             path = Path(event.src_path)
             if path.suffix.lower() not in _WATCHED_EXTENSIONS:
+                return
+            if path.suffix.lower() in OPENAPI_EXTENSIONS and not _looks_like_openapi_spec(path):
                 return
             if any(part.startswith(".") for part in path.parts):
                 return

@@ -40,12 +40,17 @@ def test_watched_extensions_includes_docs():
     assert ".txt" in _WATCHED_EXTENSIONS
     assert ".pdf" in _WATCHED_EXTENSIONS
 
+
+def test_watched_extensions_includes_openapi_candidates():
+    assert ".json" in _WATCHED_EXTENSIONS
+    assert ".yaml" in _WATCHED_EXTENSIONS
+    assert ".yml" in _WATCHED_EXTENSIONS
+
 def test_watched_extensions_includes_images():
     assert ".png" in _WATCHED_EXTENSIONS
     assert ".jpg" in _WATCHED_EXTENSIONS
 
 def test_watched_extensions_excludes_noise():
-    assert ".json" not in _WATCHED_EXTENSIONS
     assert ".pyc" not in _WATCHED_EXTENSIONS
     assert ".log" not in _WATCHED_EXTENSIONS
 

@@ -4,37 +4,70 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracely360"
-version = "0.4.24"
-description = "AI coding assistant skill (Claude Code, Codex, OpenCode, Cursor, Gemini CLI, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, Google Antigravity) - turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph"
+version = "0.4.25"
+description = "Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph — no LLM required for AST extraction"
 readme = "README.md"
 license = "Apache-2.0"
-keywords = ["claude", "claude-code", "codex", "opencode", "cursor", "gemini", "aider", "kiro", "knowledge-graph", "rag", "graphrag", "obsidian", "community-detection", "tree-sitter", "leiden", "llm"]
 requires-python = ">=3.10"
+keywords = [
+    "knowledge-graph",
+    "graphrag",
+    "tree-sitter",
+    "community-detection",
+    "leiden",
+    "code-analysis",
+    "ast",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini",
+    "aider",
+    "kiro",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
 dependencies = [
     "networkx",
+    "PyYAML",
+    # tree-sitter core
     "tree-sitter>=0.23.0",
-    "tree-sitter-python",
-    "tree-sitter-javascript",
-    "tree-sitter-typescript",
-    "tree-sitter-go",
-    "tree-sitter-rust",
-    "tree-sitter-java",
+    # language grammars — one per supported AST language
     "tree-sitter-c",
-    "tree-sitter-cpp",
-    "tree-sitter-ruby",
     "tree-sitter-c-sharp",
-    "tree-sitter-kotlin",
-    "tree-sitter-scala",
-    "tree-sitter-php",
-    "tree-sitter-swift",
-    "tree-sitter-lua",
-    "tree-sitter-zig",
-    "tree-sitter-powershell",
+    "tree-sitter-cpp",
     "tree-sitter-elixir",
-    "tree-sitter-objc",
+    "tree-sitter-go",
+    "tree-sitter-java",
+    "tree-sitter-javascript",
     "tree-sitter-julia",
+    "tree-sitter-kotlin",
+    "tree-sitter-lua",
+    "tree-sitter-objc",
+    "tree-sitter-php",
+    "tree-sitter-powershell",
+    "tree-sitter-python",
+    "tree-sitter-ruby",
+    "tree-sitter-rust",
+    "tree-sitter-scala",
+    "tree-sitter-swift",
+    "tree-sitter-typescript",
     "tree-sitter-verilog",
+    "tree-sitter-zig",
 ]
+
+[project.scripts]
+tracely360 = "tracely360.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/sidrat2612/tracely360-lite"
@@ -42,25 +75,48 @@ Repository = "https://github.com/sidrat2612/tracely360-lite"
 Issues = "https://github.com/sidrat2612/tracely360-lite/issues"
 
 [project.optional-dependencies]
+leiden = ["graspologic; python_version < '3.13'"]
 mcp = ["mcp"]
 neo4j = ["neo4j"]
-pdf = ["pypdf", "html2text"]
-watch = ["watchdog"]
-svg = ["matplotlib"]
-leiden = ["graspologic; python_version < '3.13'"]
 office = ["python-docx", "openpyxl"]
+pdf = ["pypdf", "html2text"]
+svg = ["matplotlib"]
 video = ["faster-whisper", "yt-dlp"]
-all = ["mcp", "neo4j", "pypdf", "html2text", "watchdog", "graspologic; python_version < '3.13'", "python-docx", "openpyxl", "faster-whisper", "yt-dlp", "matplotlib"]
+watch = ["watchdog"]
+all = [
+    "graspologic; python_version < '3.13'",
+    "mcp",
+    "neo4j",
+    "python-docx",
+    "openpyxl",
+    "pypdf",
+    "html2text",
+    "matplotlib",
+    "faster-whisper",
+    "yt-dlp",
+    "watchdog",
+]
 
-[project.scripts]
-tracely360 = "tracely360.__main__:main"
+# ── Tooling ──────────────────────────────────────────────────────────────────
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tracely360*"]
 
 [tool.setuptools.package-data]
-tracely360 = ["skill.md", "skill-codex.md", "skill-opencode.md", "skill-aider.md", "skill-copilot.md", "skill-claw.md", "skill-windows.md", "skill-droid.md", "skill-trae.md", "skill-kiro.md", "skill-vscode.md"]
+tracely360 = [
+    "skill.md",
+    "skill-aider.md",
+    "skill-claw.md",
+    "skill-codex.md",
+    "skill-copilot.md",
+    "skill-droid.md",
+    "skill-kiro.md",
+    "skill-opencode.md",
+    "skill-trae.md",
+    "skill-vscode.md",
+    "skill-windows.md",
+]
 
 [tool.pytest.ini_options]
 markers = [

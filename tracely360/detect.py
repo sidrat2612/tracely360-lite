@@ -24,6 +24,7 @@ PAPER_EXTENSIONS = {'.pdf'}
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}
 OFFICE_EXTENSIONS = {'.docx', '.xlsx'}
 VIDEO_EXTENSIONS = {'.mp4', '.mov', '.webm', '.mkv', '.avi', '.m4v', '.mp3', '.wav', '.m4a', '.ogg'}
+OPENAPI_EXTENSIONS = {'.json', '.yaml', '.yml'}
 
 CORPUS_WARN_THRESHOLD = 50_000    # words - below this, warn "you may not need a graph"
 CORPUS_UPPER_THRESHOLD = 500_000  # words - above this, warn about token cost
@@ -76,6 +77,18 @@ def _looks_like_paper(path: Path) -> bool:
         return False
 
 
+def _looks_like_openapi_spec(path: Path) -> bool:
+    if path.suffix.lower() not in OPENAPI_EXTENSIONS:
+        return False
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")[:20_000].lower()
+    except Exception:
+        return False
+    has_version = any(token in text for token in ('"openapi"', '"swagger"', 'openapi:', 'swagger:'))
+    has_paths = '"paths"' in text or 'paths:' in text
+    return has_version and has_paths
+
+
 _ASSET_DIR_MARKERS = {".imageset", ".xcassets", ".appiconset", ".colorset", ".launchimage"}
 
 
@@ -84,6 +97,8 @@ def classify_file(path: Path) -> FileType | None:
     if path.name.lower().endswith(".blade.php"):
         return FileType.CODE
     ext = path.suffix.lower()
+    if ext in OPENAPI_EXTENSIONS and _looks_like_openapi_spec(path):
+        return FileType.CODE
     if ext in CODE_EXTENSIONS:
         return FileType.CODE
     if ext in PAPER_EXTENSIONS:

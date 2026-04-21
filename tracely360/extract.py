@@ -8,6 +8,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Any
+import yaml
 from .cache import load_cached, save_cached
 
 
@@ -16,6 +17,143 @@ def _make_id(*parts: str) -> str:
     combined = "_".join(p.strip("_.") for p in parts if p)
     cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", combined)
     return cleaned.strip("_").lower()
+
+
+_OPENAPI_EXTENSIONS = frozenset({".json", ".yaml", ".yml"})
+_OPENAPI_HTTP_METHODS = frozenset({"get", "post", "put", "delete", "patch", "head", "options", "trace"})
+
+
+def _read_openapi_text(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+
+
+def _looks_like_openapi_spec_text(text: str) -> bool:
+    lowered = text[:20_000].lower()
+    has_version = any(token in lowered for token in ('"openapi"', '"swagger"', 'openapi:', 'swagger:'))
+    has_paths = '"paths"' in lowered or 'paths:' in lowered
+    return has_version and has_paths
+
+
+def _looks_like_openapi_spec_file(path: Path) -> bool:
+    if path.suffix.lower() not in _OPENAPI_EXTENSIONS:
+        return False
+    text = _read_openapi_text(path)
+    if not text:
+        return False
+    return _looks_like_openapi_spec_text(text)
+
+
+def _load_openapi_document(path: Path) -> dict[str, Any] | None:
+    if path.suffix.lower() not in _OPENAPI_EXTENSIONS:
+        return None
+    text = _read_openapi_text(path)
+    if not text or not _looks_like_openapi_spec_text(text):
+        return None
+
+    try:
+        if path.suffix.lower() == ".json":
+            payload = json.loads(text)
+        else:
+            payload = yaml.safe_load(text)
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    if not isinstance(payload.get("paths"), dict):
+        return None
+    if "openapi" in payload:
+        return payload
+    if str(payload.get("swagger", "")).startswith("2"):
+        return payload
+    return None
+
+
+def extract_openapi(path: Path) -> dict:
+    payload = _load_openapi_document(path)
+    if payload is None:
+        return {"nodes": [], "edges": [], "raw_calls": [], "raw_endpoint_refs": []}
+
+    str_path = str(path)
+    file_nid = _make_id(str(path))
+    framework = "openapi" if "openapi" in payload else "swagger"
+    spec_version = str(payload.get("openapi") or payload.get("swagger") or "")
+    info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+    spec_title = str(info.get("title") or path.stem)
+    api_version = str(info.get("version") or "")
+
+    nodes: list[dict] = [{
+        "id": file_nid,
+        "label": path.name,
+        "file_type": "document",
+        "source_file": str_path,
+        "source_location": "L1",
+        "framework": framework,
+        "spec_title": spec_title,
+        "spec_version": spec_version,
+    }]
+    if api_version:
+        nodes[0]["api_version"] = api_version
+    edges: list[dict] = []
+    seen_endpoint_ids: set[str] = set()
+
+    for route_path, path_item in payload.get("paths", {}).items():
+        if not isinstance(route_path, str) or not isinstance(path_item, dict):
+            continue
+        for method_name, operation in path_item.items():
+            if not isinstance(method_name, str) or method_name.lower() not in _OPENAPI_HTTP_METHODS:
+                continue
+            if not isinstance(operation, dict):
+                operation = {}
+
+            method = method_name.upper()
+            endpoint_id = _make_id(path.stem, "endpoint", method.lower(), route_path)
+            if endpoint_id in seen_endpoint_ids:
+                continue
+            seen_endpoint_ids.add(endpoint_id)
+
+            endpoint_node = {
+                "id": endpoint_id,
+                "label": f"{method} {route_path}",
+                "file_type": "endpoint",
+                "method": method,
+                "path": route_path,
+                "framework": framework,
+                "source_file": str_path,
+                "source_location": "L1",
+                "spec_title": spec_title,
+                "spec_version": spec_version,
+            }
+            if api_version:
+                endpoint_node["api_version"] = api_version
+
+            operation_id = operation.get("operationId")
+            if isinstance(operation_id, str) and operation_id:
+                endpoint_node["operation_id"] = operation_id
+
+            summary = operation.get("summary")
+            if isinstance(summary, str) and summary:
+                endpoint_node["summary"] = summary
+
+            tags = operation.get("tags")
+            if isinstance(tags, list) and tags:
+                endpoint_node["tags"] = [str(tag) for tag in tags if str(tag)]
+
+            nodes.append(endpoint_node)
+            edges.append({
+                "source": file_nid,
+                "target": endpoint_id,
+                "relation": "contains",
+                "confidence": "EXTRACTED",
+                "source_file": str_path,
+                "source_location": "L1",
+                "weight": 1.0,
+            })
+
+    return {"nodes": nodes, "edges": edges, "raw_calls": [], "raw_endpoint_refs": []}
 
 
 # ── LanguageConfig dataclass ─────────────────────────────────────────────────
@@ -517,14 +655,14 @@ _RUBY_CONFIG = LanguageConfig(
 _CSHARP_CONFIG = LanguageConfig(
     ts_module="tree_sitter_c_sharp",
     class_types=frozenset({"class_declaration", "interface_declaration"}),
-    function_types=frozenset({"method_declaration"}),
+    function_types=frozenset({"method_declaration", "local_function_statement"}),
     import_types=frozenset({"using_directive"}),
     call_types=frozenset({"invocation_expression"}),
     call_function_field="function",
     call_accessor_node_types=frozenset({"member_access_expression"}),
     call_accessor_field="name",
     body_fallback_child_types=("declaration_list",),
-    function_boundary_types=frozenset({"method_declaration"}),
+    function_boundary_types=frozenset({"method_declaration", "local_function_statement"}),
     import_handler=_import_csharp,
 )
 
@@ -592,9 +730,8 @@ def _import_lua(node, source: bytes, file_nid: str, stem: str, edges: list, str_
                 "target": module_name,
                 "relation": "imports",
                 "confidence": "EXTRACTED",
-                "confidence_score": 1.0,
                 "source_file": str_path,
-                "source_location": str(node.start_point[0] + 1),
+                "source_location": f"L{node.start_point[0] + 1}",
                 "weight": 1.0,
             })
 
@@ -1229,7 +1366,7 @@ def _extract_generic(path: Path, config: LanguageConfig) -> dict:
 
     # ── Endpoint extraction pass ──────────────────────────────────────────────
     from tracely360.endpoints import extract_endpoints as _extract_eps
-    ep_nodes, ep_edges = _extract_eps(root, source, path)
+    ep_nodes, ep_edges, raw_endpoint_refs = _extract_eps(root, source, path)
     for ep in ep_nodes:
         if ep["id"] not in seen_ids:
             seen_ids.add(ep["id"])
@@ -1244,7 +1381,7 @@ def _extract_generic(path: Path, config: LanguageConfig) -> dict:
         if src in valid_ids and (tgt in valid_ids or edge["relation"] in ("imports", "imports_from", "exposes_endpoint")):
             clean_edges.append(edge)
 
-    return {"nodes": nodes, "edges": clean_edges, "raw_calls": raw_calls}
+    return {"nodes": nodes, "edges": clean_edges, "raw_calls": raw_calls, "raw_endpoint_refs": raw_endpoint_refs}
 
 
 # ── Python rationale extraction ───────────────────────────────────────────────
@@ -2026,7 +2163,7 @@ def extract_go(path: Path) -> dict:
 
     # ── Endpoint extraction pass (Go) ─────────────────────────────────────────
     from tracely360.endpoints import extract_endpoints as _extract_eps
-    ep_nodes, ep_edges = _extract_eps(root, source, path)
+    ep_nodes, ep_edges, raw_endpoint_refs = _extract_eps(root, source, path)
     for ep in ep_nodes:
         if ep["id"] not in seen_ids:
             seen_ids.add(ep["id"])
@@ -2040,7 +2177,7 @@ def extract_go(path: Path) -> dict:
         if src in valid_ids and (tgt in valid_ids or edge["relation"] in ("imports", "imports_from", "exposes_endpoint")):
             clean_edges.append(edge)
 
-    return {"nodes": nodes, "edges": clean_edges, "raw_calls": raw_calls}
+    return {"nodes": nodes, "edges": clean_edges, "raw_calls": raw_calls, "raw_endpoint_refs": raw_endpoint_refs}
 
 
 # ── Rust extractor (custom walk) ──────────────────────────────────────────────
@@ -3086,6 +3223,103 @@ def _check_tree_sitter_version() -> None:
         )
 
 
+def _controller_label_variants(label: str) -> set[str]:
+    stripped = label.strip()
+    if not stripped:
+        return set()
+    variants = {stripped.lower()}
+    short_name = re.split(r"::|\\+", stripped)[-1]
+    if short_name:
+        variants.add(short_name.lower())
+    return variants
+
+
+def _method_label_name(label: str) -> str:
+    return label.strip().strip("()").lstrip(".")
+
+
+def _build_controller_method_index(all_nodes: list[dict], all_edges: list[dict]) -> dict[tuple[str, str], str]:
+    nodes_by_id = {node["id"]: node for node in all_nodes if node.get("id")}
+    controller_method_index: dict[tuple[str, str], str] = {}
+
+    for edge in all_edges:
+        if edge.get("relation") != "method":
+            continue
+        controller_node = nodes_by_id.get(edge.get("source", ""))
+        method_node = nodes_by_id.get(edge.get("target", ""))
+        if not controller_node or not method_node:
+            continue
+
+        action = _method_label_name(method_node.get("label", ""))
+        if not action:
+            continue
+
+        for controller_name in _controller_label_variants(controller_node.get("label", "")):
+            controller_method_index.setdefault((controller_name, action.lower()), method_node["id"])
+
+    return controller_method_index
+
+
+def _build_handler_label_index(all_nodes: list[dict]) -> dict[str, str]:
+    handler_label_index: dict[str, str] = {}
+    for node in all_nodes:
+        if node.get("file_type") != "code" or not node.get("id"):
+            continue
+
+        label = node.get("label", "")
+        if not label.endswith(")"):
+            continue
+
+        handler_name = _method_label_name(label)
+        if handler_name:
+            handler_label_index.setdefault(handler_name.lower(), node["id"])
+
+    return handler_label_index
+
+
+def _resolve_endpoint_handler_refs(per_file: list[dict], all_nodes: list[dict], all_edges: list[dict]) -> list[dict]:
+    controller_method_index = _build_controller_method_index(all_nodes, all_edges)
+    handler_label_index = _build_handler_label_index(all_nodes)
+    existing_pairs = {(edge["source"], edge["target"]) for edge in all_edges}
+    resolved_edges: list[dict] = []
+
+    for result in per_file:
+        for ref in result.get("raw_endpoint_refs", []):
+            endpoint_id = ref.get("endpoint_id", "")
+            action = ref.get("action", "")
+            if not endpoint_id or not action:
+                continue
+
+            source_id = None
+            for controller_name in ref.get("controller_candidates", []):
+                source_id = controller_method_index.get((controller_name.lower(), action.lower()))
+                if source_id:
+                    break
+
+            if not source_id:
+                for handler_name in ref.get("handler_candidates", []):
+                    source_id = handler_label_index.get(handler_name.lower())
+                    if source_id:
+                        break
+
+            if not source_id or (source_id, endpoint_id) in existing_pairs:
+                continue
+
+            existing_pairs.add((source_id, endpoint_id))
+            resolved_edges.append({
+                "source": source_id,
+                "target": endpoint_id,
+                "relation": "exposes_endpoint",
+                "confidence": "INFERRED",
+                "confidence_score": 0.8,
+                "source_file": ref.get("source_file", ""),
+                "source_location": ref.get("source_location"),
+                "weight": 1.0,
+            })
+
+    return resolved_edges
+
+
 def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
     """Extract AST nodes and edges from a list of code files.
 
@@ -3155,6 +3389,9 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
         ".dart": extract_dart,
         ".v": extract_verilog,
         ".sv": extract_verilog,
+        ".json": extract_openapi,
+        ".yaml": extract_openapi,
+        ".yml": extract_openapi,
     }
 
     total = len(paths)
@@ -3205,7 +3442,7 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
         raw = n.get("label", "")
         normalised = raw.strip("()").lstrip(".")
         if normalised:
-            global_label_to_nid[normalised.lower()] = n["id"]
+            global_label_to_nid.setdefault(normalised.lower(), n["id"])
 
     existing_pairs = {(e["source"], e["target"]) for e in all_edges}
     for result in per_file:
@@ -3228,6 +3465,8 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
                     "weight": 1.0,
                 })
 
+    all_edges.extend(_resolve_endpoint_handler_refs(per_file, all_nodes, all_edges))
+
     return {
         "nodes": all_nodes,
         "edges": all_edges,
@@ -3239,33 +3478,16 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
 def collect_files(target: Path, *, follow_symlinks: bool = False, root: Path | None = None) -> list[Path]:
     if target.is_file():
         return [target]
-    _EXTENSIONS = {
-        ".py", ".js", ".ts", ".tsx", ".go", ".rs",
-        ".java", ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp",
-        ".rb", ".cs", ".kt", ".kts", ".scala", ".php", ".swift",
-        ".lua", ".toc", ".zig", ".ps1",
-        ".m", ".mm",
-    }
-    from tracely360.detect import _load_tracely360ignore, _is_ignored
+    from tracely360.detect import CODE_EXTENSIONS, _load_tracely360ignore, _is_ignored
     ignore_root = root if root is not None else target
     patterns = _load_tracely360ignore(ignore_root)
 
     def _ignored(p: Path) -> bool:
         return bool(patterns and _is_ignored(p, ignore_root, patterns))
 
-    if not follow_symlinks:
-        results: list[Path] = []
-        for ext in sorted(_EXTENSIONS):
-            results.extend(
-                p for p in target.rglob(f"*{ext}")
-                if not any(part.startswith(".") for part in p.parts)
-                and not _ignored(p)
-            )
-        return sorted(results)
-    # Walk with symlink following + cycle detection
-    results = []
-    for dirpath, dirnames, filenames in os.walk(target, followlinks=True):
-        if os.path.islink(dirpath):
+    results: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(target, followlinks=follow_symlinks):
+        if follow_symlinks and os.path.islink(dirpath):
             real = os.path.realpath(dirpath)
             parent_real = os.path.realpath(os.path.dirname(dirpath))
             if parent_real == real or parent_real.startswith(real + os.sep):
@@ -3276,8 +3498,14 @@ def collect_files(target: Path, *, follow_symlinks: bool = False, root: Path | N
             dirnames.clear()
             continue
         for fname in filenames:
+            if fname.startswith("."):
+                continue
             p = dp / fname
-            if p.suffix in _EXTENSIONS and not fname.startswith(".") and not _ignored(p):
+            if _ignored(p):
+                continue
+            if p.suffix in CODE_EXTENSIONS:
+                results.append(p)
+            elif p.suffix in _OPENAPI_EXTENSIONS and _looks_like_openapi_spec_file(p):
                 results.append(p)
     return sorted(results)
 
