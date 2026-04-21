@@ -46,9 +46,9 @@ Type `/tracely360 .` in Claude Code, Codex, OpenCode, Cursor, Gemini CLI, GitHub
 ### CLI utilities
 
 ```bash
-tracely360 query "How is AuthController connected to RisklogicService?"
-tracely360 path "AuthController" "RisklogicService"
-tracely360 explain "SuperlogicRepository"
+tracely360 query "How is AuthController connected to Service?"
+tracely360 path "AuthController" "Service"
+tracely360 explain "Repository"
 ```
 
 For full graph builds, use the assistant skill mode above. The direct CLI exposes utilities like `update`, `watch`, `query`, `path`, `explain`, and platform installers.
