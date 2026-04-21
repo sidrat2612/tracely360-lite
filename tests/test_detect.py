@@ -74,7 +74,7 @@ def test_classify_md_doc_without_signals(tmp_path):
 
 def test_classify_attention_paper():
     """The real attention paper file should be classified as PAPER."""
-    paper_path = Path("/home/safi/tracely360_lite_eval/papers/attention_is_all_you_need.md")
+    paper_path = Path("/tmp/tracely360_lite_eval/papers/attention_is_all_you_need.md")
     if paper_path.exists():
         result = classify_file(paper_path)
         assert result == FileType.PAPER
