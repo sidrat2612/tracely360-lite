@@ -43,11 +43,15 @@ pip install "tracely360[all]"      # Everything
 
 Type `/tracely360 .` in Claude Code, Codex, OpenCode, Cursor, Gemini CLI, GitHub Copilot CLI, VS Code Copilot Chat, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, or Google Antigravity.
 
-### CLI mode
+### CLI utilities
 
 ```bash
-tracely360 --analyze /path/to/repo --output ./tracely360-out
+tracely360 query "How is AuthController connected to RisklogicService?"
+tracely360 path "AuthController" "RisklogicService"
+tracely360 explain "SuperlogicRepository"
 ```
+
+For full graph builds, use the assistant skill mode above. The direct CLI exposes utilities like `update`, `watch`, `query`, `path`, `explain`, and platform installers.
 
 ### Watch mode
 

@@ -7,7 +7,7 @@ name = "tracely360"
 version = "0.4.23"
 description = "AI coding assistant skill (Claude Code, Codex, OpenCode, Cursor, Gemini CLI, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, Google Antigravity) - turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
 keywords = ["claude", "claude-code", "codex", "opencode", "cursor", "gemini", "aider", "kiro", "knowledge-graph", "rag", "graphrag", "obsidian", "community-detection", "tree-sitter", "leiden", "llm"]
 requires-python = ">=3.10"
 dependencies = [
@@ -37,9 +37,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sidrat2612/tracely360"
-Repository = "https://github.com/sidrat2612/tracely360"
-Issues = "https://github.com/sidrat2612/tracely360/issues"
+Homepage = "https://github.com/sidrat2612/tracely360-lite"
+Repository = "https://github.com/sidrat2612/tracely360-lite"
+Issues = "https://github.com/sidrat2612/tracely360-lite/issues"
 
 [project.optional-dependencies]
 mcp = ["mcp"]

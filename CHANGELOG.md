@@ -1,6 +1,6 @@
 # Changelog
 
-Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360/releases)
+Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360-lite/releases)
 
 ## Unreleased
 
@@ -371,7 +371,7 @@ Initial release.
 - `tracely360 install` CLI
 # Changelog
 
-Full release notes with details on each version: [GitHub Releases](https://github.com/sidrat2612/tracely360/releases)
+Full release notes with details on each version: [GitHub Releases](https://github.com/sidrat2612/tracely360-lite/releases)
 
 ## Unreleased
 
