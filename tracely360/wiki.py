@@ -5,9 +5,7 @@ from collections import Counter
 from pathlib import Path
 import networkx as nx
 
-
-def _safe_filename(name: str) -> str:
-    return name.replace("/", "-").replace(" ", "_").replace(":", "-")
+from tracely360.naming import safe_wiki_filename
 
 
 def _cross_community_links(G: nx.Graph, nodes: list[str], own_cid: int, labels: dict[int, str]) -> list[tuple[str, int]]:
@@ -195,7 +193,7 @@ def to_wiki(
     for cid, nodes in communities.items():
         label = labels.get(cid, f"Community {cid}")
         article = _community_article(G, cid, nodes, label, labels, cohesion.get(cid))
-        (out / f"{_safe_filename(label)}.md").write_text(article)
+        (out / f"{safe_wiki_filename(label)}.md").write_text(article)
         count += 1
 
     # God node articles
@@ -203,7 +201,7 @@ def to_wiki(
         nid = node_data.get("id")
         if nid and nid in G:
             article = _god_node_article(G, nid, labels)
-            (out / f"{_safe_filename(node_data['label'])}.md").write_text(article)
+            (out / f"{safe_wiki_filename(node_data['label'])}.md").write_text(article)
             count += 1
 
     # Index

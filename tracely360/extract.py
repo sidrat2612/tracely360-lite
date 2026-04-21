@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Any
 import yaml
 from .cache import load_cached, save_cached
+from .tree_sitter_utils import read_node_text
 
 
 def _make_id(*parts: str) -> str:
@@ -203,8 +204,7 @@ class LanguageConfig:
 
 # ── Generic helpers ───────────────────────────────────────────────────────────
 
-def _read_text(node, source: bytes) -> str:
-    return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+_read_text = read_node_text
 
 
 def _resolve_name(node, source: bytes, config: LanguageConfig) -> str | None:

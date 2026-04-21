@@ -7,6 +7,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from tracely360.markdown_sections import append_markdown_section, remove_markdown_section
+
 try:
     from importlib.metadata import version as _pkg_version
     __version__ = _pkg_version("tracely360")
@@ -183,7 +185,7 @@ def install(platform: str = "claude") -> None:
     print()
 
 
-_CLAUDE_MD_SECTION = """\
+_PROJECT_MD_SECTION = """\
 ## tracely360
 
 This project has a tracely360 knowledge graph at tracely360-out/.
@@ -194,35 +196,18 @@ Rules:
 - After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
-_CLAUDE_MD_MARKER = "## tracely360"
+_PROJECT_MD_MARKER = "## tracely360"
+
+_CLAUDE_MD_SECTION = _PROJECT_MD_SECTION
+_CLAUDE_MD_MARKER = _PROJECT_MD_MARKER
 
 # AGENTS.md section for Codex, OpenCode, and OpenClaw.
 # All three platforms read AGENTS.md in the project root for persistent instructions.
-_AGENTS_MD_SECTION = """\
-## tracely360
+_AGENTS_MD_SECTION = _PROJECT_MD_SECTION
+_AGENTS_MD_MARKER = _PROJECT_MD_MARKER
 
-This project has a tracely360 knowledge graph at tracely360-out/.
-
-Rules:
-- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
-"""
-
-_AGENTS_MD_MARKER = "## tracely360"
-
-_GEMINI_MD_SECTION = """\
-## tracely360
-
-This project has a tracely360 knowledge graph at tracely360-out/.
-
-Rules:
-- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
-"""
-
-_GEMINI_MD_MARKER = "## tracely360"
+_GEMINI_MD_SECTION = _PROJECT_MD_SECTION
+_GEMINI_MD_MARKER = _PROJECT_MD_MARKER
 
 _GEMINI_HOOK = {
     "matcher": "read_file|list_directory",
@@ -255,16 +240,10 @@ def gemini_install(project_dir: Path | None = None) -> None:
 
     target = (project_dir or Path(".")) / "GEMINI.md"
 
-    if target.exists():
-        content = target.read_text(encoding="utf-8")
-        if _GEMINI_MD_MARKER in content:
-            print("tracely360 already configured in GEMINI.md")
-        else:
-            target.write_text(content.rstrip() + "\n\n" + _GEMINI_MD_SECTION, encoding="utf-8")
-            print(f"tracely360 section written to {target.resolve()}")
-    else:
-        target.write_text(_GEMINI_MD_SECTION, encoding="utf-8")
+    if append_markdown_section(target, _GEMINI_MD_MARKER, _GEMINI_MD_SECTION):
         print(f"tracely360 section written to {target.resolve()}")
+    else:
+        print("tracely360 already configured in GEMINI.md")
 
     _install_gemini_hook(project_dir or Path("."))
     print()
@@ -323,19 +302,16 @@ def gemini_uninstall(project_dir: Path | None = None) -> None:
             break
 
     target = (project_dir or Path(".")) / "GEMINI.md"
-    if not target.exists():
+    section_state = remove_markdown_section(target, _GEMINI_MD_MARKER)
+    if section_state == "missing_file":
         print("No GEMINI.md found in current directory - nothing to do")
         return
-    content = target.read_text(encoding="utf-8")
-    if _GEMINI_MD_MARKER not in content:
+    if section_state == "missing_section":
         print("tracely360 section not found in GEMINI.md - nothing to do")
         return
-    cleaned = re.sub(r"\n*## tracely360\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
-    if cleaned:
-        target.write_text(cleaned + "\n", encoding="utf-8")
+    if section_state == "updated":
         print(f"tracely360 section removed from {target.resolve()}")
     else:
-        target.unlink()
         print(f"GEMINI.md was empty after removal - deleted {target.resolve()}")
     _uninstall_gemini_hook(project_dir or Path("."))
 
@@ -363,16 +339,14 @@ def vscode_install(project_dir: Path | None = None) -> None:
 
     instructions = (project_dir or Path(".")) / ".github" / "copilot-instructions.md"
     instructions.parent.mkdir(parents=True, exist_ok=True)
-    if instructions.exists():
-        content = instructions.read_text(encoding="utf-8")
-        if _VSCODE_INSTRUCTIONS_MARKER in content:
-            print(f"  {instructions}  ->  already configured (no change)")
-        else:
-            instructions.write_text(content.rstrip() + "\n\n" + _VSCODE_INSTRUCTIONS_SECTION, encoding="utf-8")
+    existed = instructions.exists()
+    if append_markdown_section(instructions, _VSCODE_INSTRUCTIONS_MARKER, _VSCODE_INSTRUCTIONS_SECTION):
+        if existed:
             print(f"  {instructions}  ->  tracely360 section added")
+        else:
+            print(f"  {instructions}  ->  created")
     else:
-        instructions.write_text(_VSCODE_INSTRUCTIONS_SECTION, encoding="utf-8")
-        print(f"  {instructions}  ->  created")
+        print(f"  {instructions}  ->  already configured (no change)")
 
     print()
     print("VS Code Copilot Chat configured. Type /tracely360 in the chat panel to build the graph.")
@@ -395,17 +369,12 @@ def vscode_uninstall(project_dir: Path | None = None) -> None:
             break
 
     instructions = (project_dir or Path(".")) / ".github" / "copilot-instructions.md"
-    if not instructions.exists():
+    section_state = remove_markdown_section(instructions, _VSCODE_INSTRUCTIONS_MARKER)
+    if section_state in {"missing_file", "missing_section"}:
         return
-    content = instructions.read_text(encoding="utf-8")
-    if _VSCODE_INSTRUCTIONS_MARKER not in content:
-        return
-    cleaned = re.sub(r"\n*## tracely360\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
-    if cleaned:
-        instructions.write_text(cleaned + "\n", encoding="utf-8")
+    if section_state == "updated":
         print(f"  tracely360 section removed from {instructions}")
     else:
-        instructions.unlink()
         print(f"  {instructions}  ->  deleted (was empty after removal)")
 
 
@@ -753,16 +722,10 @@ def _agents_install(project_dir: Path, platform: str) -> None:
     """Write the tracely360 section to the local AGENTS.md (Codex/OpenCode/OpenClaw)."""
     target = (project_dir or Path(".")) / "AGENTS.md"
 
-    if target.exists():
-        content = target.read_text(encoding="utf-8")
-        if _AGENTS_MD_MARKER in content:
-            print(f"tracely360 already configured in AGENTS.md")
-        else:
-            target.write_text(content.rstrip() + "\n\n" + _AGENTS_MD_SECTION, encoding="utf-8")
-            print(f"tracely360 section written to {target.resolve()}")
-    else:
-        target.write_text(_AGENTS_MD_SECTION, encoding="utf-8")
+    if append_markdown_section(target, _AGENTS_MD_MARKER, _AGENTS_MD_SECTION):
         print(f"tracely360 section written to {target.resolve()}")
+    else:
+        print(f"tracely360 already configured in AGENTS.md")
 
     if platform == "codex":
         _install_codex_hook(project_dir or Path("."))
@@ -782,26 +745,16 @@ def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
     """Remove the tracely360 section from the local AGENTS.md."""
     target = (project_dir or Path(".")) / "AGENTS.md"
 
-    if not target.exists():
+    section_state = remove_markdown_section(target, _AGENTS_MD_MARKER)
+    if section_state == "missing_file":
         print("No AGENTS.md found in current directory - nothing to do")
         return
-
-    content = target.read_text(encoding="utf-8")
-    if _AGENTS_MD_MARKER not in content:
+    if section_state == "missing_section":
         print("tracely360 section not found in AGENTS.md - nothing to do")
         return
-
-    cleaned = re.sub(
-        r"\n*## tracely360\n.*?(?=\n## |\Z)",
-        "",
-        content,
-        flags=re.DOTALL,
-    ).rstrip()
-    if cleaned:
-        target.write_text(cleaned + "\n", encoding="utf-8")
+    if section_state == "updated":
         print(f"tracely360 section removed from {target.resolve()}")
     else:
-        target.unlink()
         print(f"AGENTS.md was empty after removal - deleted {target.resolve()}")
 
     if platform == "opencode":
@@ -812,16 +765,10 @@ def claude_install(project_dir: Path | None = None) -> None:
     """Write the tracely360 section to the local CLAUDE.md."""
     target = (project_dir or Path(".")) / "CLAUDE.md"
 
-    if target.exists():
-        content = target.read_text(encoding="utf-8")
-        if _CLAUDE_MD_MARKER in content:
-            print("tracely360 already configured in CLAUDE.md")
-            return
-        new_content = content.rstrip() + "\n\n" + _CLAUDE_MD_SECTION
-    else:
-        new_content = _CLAUDE_MD_SECTION
+    if not append_markdown_section(target, _CLAUDE_MD_MARKER, _CLAUDE_MD_SECTION):
+        print("tracely360 already configured in CLAUDE.md")
+        return
 
-    target.write_text(new_content, encoding="utf-8")
     print(f"tracely360 section written to {target.resolve()}")
 
     # Also write Claude Code PreToolUse hook to .claude/settings.json
@@ -876,27 +823,16 @@ def claude_uninstall(project_dir: Path | None = None) -> None:
     """Remove the tracely360 section from the local CLAUDE.md."""
     target = (project_dir or Path(".")) / "CLAUDE.md"
 
-    if not target.exists():
+    section_state = remove_markdown_section(target, _CLAUDE_MD_MARKER)
+    if section_state == "missing_file":
         print("No CLAUDE.md found in current directory - nothing to do")
         return
-
-    content = target.read_text(encoding="utf-8")
-    if _CLAUDE_MD_MARKER not in content:
+    if section_state == "missing_section":
         print("tracely360 section not found in CLAUDE.md - nothing to do")
         return
-
-    # Remove the ## tracely360 section: from the marker to the next ## heading or EOF
-    cleaned = re.sub(
-        r"\n*## tracely360\n.*?(?=\n## |\Z)",
-        "",
-        content,
-        flags=re.DOTALL,
-    ).rstrip()
-    if cleaned:
-        target.write_text(cleaned + "\n", encoding="utf-8")
+    if section_state == "updated":
         print(f"tracely360 section removed from {target.resolve()}")
     else:
-        target.unlink()
         print(f"CLAUDE.md was empty after removal - deleted {target.resolve()}")
 
     _uninstall_claude_hook(project_dir or Path("."))

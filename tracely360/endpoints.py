@@ -18,6 +18,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from tracely360.tree_sitter_utils import read_node_text
+
 # HTTP methods we recognize
 _HTTP_METHODS = frozenset({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"})
 
@@ -33,8 +35,7 @@ def _path_within_root(path: Path, root: Path) -> bool:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def _read_text(node, source: bytes) -> str:
-    return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+_read_text = read_node_text
 
 
 def _strip_quotes(s: str) -> str:

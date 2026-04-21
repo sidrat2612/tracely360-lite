@@ -10,11 +10,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 from tracely360.security import sanitize_label
 from tracely360.analyze import _node_community_map
-
-def _strip_diacritics(text: str) -> str:
-    import unicodedata
-    nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c))
+from tracely360.naming import safe_note_name, strip_diacritics
 
 
 COMMUNITY_COLORS = [
@@ -287,7 +283,7 @@ def to_json(G: nx.Graph, communities: dict[int, list[str]], output_path: str) ->
         data = json_graph.node_link_data(G)
     for node in data["nodes"]:
         node["community"] = node_community.get(node["id"])
-        node["norm_label"] = _strip_diacritics(node.get("label", "")).lower()
+        node["norm_label"] = strip_diacritics(node.get("label", "")).lower()
     for link in data["links"]:
         if "confidence_score" not in link:
             conf = link.get("confidence", "EXTRACTED")
@@ -487,18 +483,10 @@ def to_obsidian(
 
     node_community = _node_community_map(communities)
 
-    # Map node_id → safe filename so wikilinks stay consistent.
-    # Deduplicate: if two nodes produce the same filename, append a numeric suffix.
-    def safe_name(label: str) -> str:
-        cleaned = re.sub(r'[\\/*?:"<>|#^[\]]', "", label.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")).strip()
-        # Strip trailing .md/.mdx/.markdown so "CLAUDE.md" doesn't become "CLAUDE.md.md"
-        cleaned = re.sub(r"\.(md|mdx|markdown)$", "", cleaned, flags=re.IGNORECASE)
-        return cleaned or "unnamed"
-
     node_filename: dict[str, str] = {}
     seen_names: dict[str, int] = {}
     for node_id, data in G.nodes(data=True):
-        base = safe_name(data.get("label", node_id))
+        base = safe_note_name(data.get("label", node_id))
         if base in seen_names:
             seen_names[base] += 1
             node_filename[node_id] = f"{base}_{seen_names[base]}"
@@ -669,7 +657,7 @@ def to_obsidian(
                     if community_labels and other_cid is not None
                     else f"Community {other_cid}"
                 )
-                other_safe = safe_name(other_name)
+                other_safe = safe_note_name(other_name)
                 lines.append(f"- {edge_count} edge{'s' if edge_count != 1 else ''} to [[_COMMUNITY_{other_safe}]]")
             lines.append("")
 
@@ -690,7 +678,7 @@ def to_obsidian(
                     f"{'community' if reach == 1 else 'communities'}"
                 )
 
-        community_safe = safe_name(community_name)
+        community_safe = safe_note_name(community_name)
         fname = f"_COMMUNITY_{community_safe}.md"
         (out / fname).write_text("\n".join(lines), encoding="utf-8")
         community_notes_written += 1
@@ -728,17 +716,12 @@ def to_canvas(
     # Obsidian canvas color codes (cycle through for communities)
     CANVAS_COLORS = ["1", "2", "3", "4", "5", "6"]  # red, orange, yellow, green, cyan, purple
 
-    def safe_name(label: str) -> str:
-        cleaned = re.sub(r'[\\/*?:"<>|#^[\]]', "", label.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")).strip()
-        cleaned = re.sub(r"\.(md|mdx|markdown)$", "", cleaned, flags=re.IGNORECASE)
-        return cleaned or "unnamed"
-
     # Build node_filenames if not provided (same dedup logic as to_obsidian)
     if node_filenames is None:
         node_filenames = {}
         seen_names: dict[str, int] = {}
         for node_id, data in G.nodes(data=True):
-            base = safe_name(data.get("label", node_id))
+            base = safe_note_name(data.get("label", node_id))
             if base in seen_names:
                 seen_names[base] += 1
                 node_filenames[node_id] = f"{base}_{seen_names[base]}"
