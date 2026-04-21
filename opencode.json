@@ -1,0 +1,5 @@
+{
+  "plugin": [
+    ".opencode/plugins/tracely360_lite.js"
+  ]
+}

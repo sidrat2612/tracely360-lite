@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tracely360-lite"
+version = "0.4.23"
+description = "AI coding assistant skill (Claude Code, Codex, OpenCode, Cursor, Gemini CLI, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, Google Antigravity) - turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph"
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["claude", "claude-code", "codex", "opencode", "cursor", "gemini", "aider", "kiro", "knowledge-graph", "rag", "graphrag", "obsidian", "community-detection", "tree-sitter", "leiden", "llm"]
+requires-python = ">=3.10"
+dependencies = [
+    "networkx",
+    "tree-sitter>=0.23.0",
+    "tree-sitter-python",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "tree-sitter-go",
+    "tree-sitter-rust",
+    "tree-sitter-java",
+    "tree-sitter-c",
+    "tree-sitter-cpp",
+    "tree-sitter-ruby",
+    "tree-sitter-c-sharp",
+    "tree-sitter-kotlin",
+    "tree-sitter-scala",
+    "tree-sitter-php",
+    "tree-sitter-swift",
+    "tree-sitter-lua",
+    "tree-sitter-zig",
+    "tree-sitter-powershell",
+    "tree-sitter-elixir",
+    "tree-sitter-objc",
+    "tree-sitter-julia",
+    "tree-sitter-verilog",
+]
+
+[project.urls]
+Homepage = "https://github.com/sidrat2612/tracely360-lite"
+Repository = "https://github.com/sidrat2612/tracely360-lite"
+Issues = "https://github.com/sidrat2612/tracely360-lite/issues"
+
+[project.optional-dependencies]
+mcp = ["mcp"]
+neo4j = ["neo4j"]
+pdf = ["pypdf", "html2text"]
+watch = ["watchdog"]
+svg = ["matplotlib"]
+leiden = ["graspologic; python_version < '3.13'"]
+office = ["python-docx", "openpyxl"]
+video = ["faster-whisper", "yt-dlp"]
+all = ["mcp", "neo4j", "pypdf", "html2text", "watchdog", "graspologic; python_version < '3.13'", "python-docx", "openpyxl", "faster-whisper", "yt-dlp", "matplotlib"]
+
+[project.scripts]
+tracely360-lite = "tracely360_lite.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tracely360_lite*"]
+
+[tool.setuptools.package-data]
+tracely360_lite = ["skill.md", "skill-codex.md", "skill-opencode.md", "skill-aider.md", "skill-copilot.md", "skill-claw.md", "skill-windows.md", "skill-droid.md", "skill-trae.md", "skill-kiro.md", "skill-vscode.md"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: end-to-end pipeline coverage",
+]
