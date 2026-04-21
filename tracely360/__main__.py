@@ -1,4 +1,4 @@
-"""tracely360-lite CLI - `tracely360-lite install` sets up the Claude Code skill."""
+"""tracely360 CLI - `tracely360 install` sets up the Claude Code skill."""
 from __future__ import annotations
 import json
 import platform
@@ -9,30 +9,30 @@ from pathlib import Path
 
 try:
     from importlib.metadata import version as _pkg_version
-    __version__ = _pkg_version("tracely360-lite")
+    __version__ = _pkg_version("tracely360")
 except Exception:
     __version__ = "unknown"
 
 
 def _check_skill_version(skill_dst: Path) -> None:
-    """Warn if the installed skill is from an older tracely360-lite version."""
-    version_file = skill_dst.parent / ".tracely360lite_version"
+    """Warn if the installed skill is from an older tracely360 version."""
+    version_file = skill_dst.parent / ".tracely360_version"
     if not version_file.exists():
         return
     installed = version_file.read_text(encoding="utf-8").strip()
     if installed != __version__:
-        print(f"  warning: skill is from tracely360-lite {installed}, package is {__version__}. Run 'tracely360-lite install' to update.")
+        print(f"  warning: skill is from tracely360 {installed}, package is {__version__}. Run 'tracely360 install' to update.")
 
 
 def _refresh_all_version_stamps() -> None:
-    """After a successful install, update .tracely360lite_version in all other known skill dirs.
+    """After a successful install, update .tracely360_version in all other known skill dirs.
 
     Prevents stale-version warnings from platforms that were installed previously
     but not explicitly re-installed during this upgrade.
     """
     for cfg in _PLATFORM_CONFIG.values():
         vf = Path.home() / cfg["skill_dst"]
-        vf = vf.parent / ".tracely360lite_version"
+        vf = vf.parent / ".tracely360_version"
         if vf.exists():
             vf.write_text(__version__, encoding="utf-8")
 
@@ -42,8 +42,8 @@ _SETTINGS_HOOK = {
         {
             "type": "command",
             "command": (
-                "[ -f tracely360-lite-out/graph.json ] && "
-                r"""echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"tracely360-lite: Knowledge graph exists. Read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}}' """
+                "[ -f tracely360-out/graph.json ] && "
+                r"""echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"tracely360: Knowledge graph exists. Read tracely360-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}}' """
                 "|| true"
             ),
         }
@@ -51,78 +51,78 @@ _SETTINGS_HOOK = {
 }
 
 _SKILL_REGISTRATION = (
-    "\n# tracely360-lite\n"
-    "- **tracely360-lite** (`~/.claude/skills/tracely360-lite/SKILL.md`) "
-    "- any input to knowledge graph. Trigger: `/tracely360-lite`\n"
-    "When the user types `/tracely360-lite`, invoke the Skill tool "
-    "with `skill: \"tracely360-lite\"` before doing anything else.\n"
+    "\n# tracely360\n"
+    "- **tracely360** (`~/.claude/skills/tracely360/SKILL.md`) "
+    "- any input to knowledge graph. Trigger: `/tracely360`\n"
+    "When the user types `/tracely360`, invoke the Skill tool "
+    "with `skill: \"tracely360\"` before doing anything else.\n"
 )
 
 
 _PLATFORM_CONFIG: dict[str, dict] = {
     "claude": {
         "skill_file": "skill.md",
-        "skill_dst": Path(".claude") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".claude") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": True,
     },
     "codex": {
         "skill_file": "skill-codex.md",
-        "skill_dst": Path(".agents") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".agents") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "opencode": {
         "skill_file": "skill-opencode.md",
-        "skill_dst": Path(".config") / "opencode" / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".config") / "opencode" / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "aider": {
         "skill_file": "skill-aider.md",
-        "skill_dst": Path(".aider") / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".aider") / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "copilot": {
         "skill_file": "skill-copilot.md",
-        "skill_dst": Path(".copilot") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".copilot") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "claw": {
         "skill_file": "skill-claw.md",
-        "skill_dst": Path(".openclaw") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".openclaw") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "droid": {
         "skill_file": "skill-droid.md",
-        "skill_dst": Path(".factory") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".factory") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "trae": {
         "skill_file": "skill-trae.md",
-        "skill_dst": Path(".trae") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".trae") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "trae-cn": {
         "skill_file": "skill-trae.md",
-        "skill_dst": Path(".trae-cn") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".trae-cn") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "hermes": {
         "skill_file": "skill-claw.md",
-        "skill_dst": Path(".hermes") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".hermes") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "kiro": {
         "skill_file": "skill-kiro.md",
-        "skill_dst": Path(".kiro") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".kiro") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "antigravity": {
         "skill_file": "skill.md",
-        "skill_dst": Path(".agent") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".agent") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": False,
     },
     "windows": {
         "skill_file": "skill-windows.md",
-        "skill_dst": Path(".claude") / "skills" / "tracely360-lite" / "SKILL.md",
+        "skill_dst": Path(".claude") / "skills" / "tracely360" / "SKILL.md",
         "claude_md": True,
     },
 }
@@ -145,13 +145,13 @@ def install(platform: str = "claude") -> None:
     cfg = _PLATFORM_CONFIG[platform]
     skill_src = Path(__file__).parent / cfg["skill_file"]
     if not skill_src.exists():
-        print(f"error: {cfg['skill_file']} not found in package - reinstall tracely360-lite", file=sys.stderr)
+        print(f"error: {cfg['skill_file']} not found in package - reinstall tracely360", file=sys.stderr)
         sys.exit(1)
 
     skill_dst = Path.home() / cfg["skill_dst"]
     skill_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(skill_src, skill_dst)
-    (skill_dst.parent / ".tracely360lite_version").write_text(__version__, encoding="utf-8")
+    (skill_dst.parent / ".tracely360_version").write_text(__version__, encoding="utf-8")
     print(f"  skill installed  ->  {skill_dst}")
 
     if cfg["claude_md"]:
@@ -159,7 +159,7 @@ def install(platform: str = "claude") -> None:
         claude_md = Path.home() / ".claude" / "CLAUDE.md"
         if claude_md.exists():
             content = claude_md.read_text(encoding="utf-8")
-            if "tracely360-lite" in content:
+            if "tracely360" in content:
                 print(f"  CLAUDE.md        ->  already registered (no change)")
             else:
                 claude_md.write_text(content.rstrip() + _SKILL_REGISTRATION, encoding="utf-8")
@@ -179,50 +179,50 @@ def install(platform: str = "claude") -> None:
     print()
     print("Done. Open your AI coding assistant and type:")
     print()
-    print("  /tracely360-lite .")
+    print("  /tracely360 .")
     print()
 
 
 _CLAUDE_MD_SECTION = """\
-## tracely360-lite
+## tracely360
 
-This project has a tracely360-lite knowledge graph at tracely360-lite-out/.
+This project has a tracely360 knowledge graph at tracely360-out/.
 
 Rules:
-- Before answering architecture or codebase questions, read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-lite-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360-lite update .` to keep the graph current (AST-only, no API cost)
+- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
+- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
-_CLAUDE_MD_MARKER = "## tracely360-lite"
+_CLAUDE_MD_MARKER = "## tracely360"
 
 # AGENTS.md section for Codex, OpenCode, and OpenClaw.
 # All three platforms read AGENTS.md in the project root for persistent instructions.
 _AGENTS_MD_SECTION = """\
-## tracely360-lite
+## tracely360
 
-This project has a tracely360-lite knowledge graph at tracely360-lite-out/.
+This project has a tracely360 knowledge graph at tracely360-out/.
 
 Rules:
-- Before answering architecture or codebase questions, read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-lite-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360-lite update .` to keep the graph current (AST-only, no API cost)
+- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
+- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
-_AGENTS_MD_MARKER = "## tracely360-lite"
+_AGENTS_MD_MARKER = "## tracely360"
 
 _GEMINI_MD_SECTION = """\
-## tracely360-lite
+## tracely360
 
-This project has a tracely360-lite knowledge graph at tracely360-lite-out/.
+This project has a tracely360 knowledge graph at tracely360-out/.
 
 Rules:
-- Before answering architecture or codebase questions, read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-lite-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360-lite update .` to keep the graph current (AST-only, no API cost)
+- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
+- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
-_GEMINI_MD_MARKER = "## tracely360-lite"
+_GEMINI_MD_MARKER = "## tracely360"
 
 _GEMINI_HOOK = {
     "matcher": "read_file|list_directory",
@@ -230,8 +230,8 @@ _GEMINI_HOOK = {
         {
             "type": "command",
             "command": (
-                "[ -f tracely360-lite-out/graph.json ] && "
-                r"""echo '{"decision":"allow","additionalContext":"tracely360-lite: Knowledge graph exists. Read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}' """
+                "[ -f tracely360-out/graph.json ] && "
+                r"""echo '{"decision":"allow","additionalContext":"tracely360: Knowledge graph exists. Read tracely360-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}' """
                 r"""|| echo '{"decision":"allow"}'"""
             ),
         }
@@ -240,17 +240,17 @@ _GEMINI_HOOK = {
 
 
 def gemini_install(project_dir: Path | None = None) -> None:
-    """Copy skill file to ~/.gemini/skills/tracely360-lite/, write GEMINI.md section, and install BeforeTool hook."""
-    # Copy skill file to ~/.gemini/skills/tracely360-lite/SKILL.md
+    """Copy skill file to ~/.gemini/skills/tracely360/, write GEMINI.md section, and install BeforeTool hook."""
+    # Copy skill file to ~/.gemini/skills/tracely360/SKILL.md
     # On Windows, Gemini CLI prioritises ~/.agents/skills/ over ~/.gemini/skills/
     skill_src = Path(__file__).parent / "skill.md"
     if platform.system() == "Windows":
-        skill_dst = Path.home() / ".agents" / "skills" / "tracely360-lite" / "SKILL.md"
+        skill_dst = Path.home() / ".agents" / "skills" / "tracely360" / "SKILL.md"
     else:
-        skill_dst = Path.home() / ".gemini" / "skills" / "tracely360-lite" / "SKILL.md"
+        skill_dst = Path.home() / ".gemini" / "skills" / "tracely360" / "SKILL.md"
     skill_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(skill_src, skill_dst)
-    (skill_dst.parent / ".tracely360lite_version").write_text(__version__, encoding="utf-8")
+    (skill_dst.parent / ".tracely360_version").write_text(__version__, encoding="utf-8")
     print(f"  skill installed  ->  {skill_dst}")
 
     target = (project_dir or Path(".")) / "GEMINI.md"
@@ -258,13 +258,13 @@ def gemini_install(project_dir: Path | None = None) -> None:
     if target.exists():
         content = target.read_text(encoding="utf-8")
         if _GEMINI_MD_MARKER in content:
-            print("tracely360-lite already configured in GEMINI.md")
+            print("tracely360 already configured in GEMINI.md")
         else:
             target.write_text(content.rstrip() + "\n\n" + _GEMINI_MD_SECTION, encoding="utf-8")
-            print(f"tracely360-lite section written to {target.resolve()}")
+            print(f"tracely360 section written to {target.resolve()}")
     else:
         target.write_text(_GEMINI_MD_SECTION, encoding="utf-8")
-        print(f"tracely360-lite section written to {target.resolve()}")
+        print(f"tracely360 section written to {target.resolve()}")
 
     _install_gemini_hook(project_dir or Path("."))
     print()
@@ -280,7 +280,7 @@ def _install_gemini_hook(project_dir: Path) -> None:
     except json.JSONDecodeError:
         settings = {}
     before_tool = settings.setdefault("hooks", {}).setdefault("BeforeTool", [])
-    settings["hooks"]["BeforeTool"] = [h for h in before_tool if "tracely360-lite" not in str(h)]
+    settings["hooks"]["BeforeTool"] = [h for h in before_tool if "tracely360" not in str(h)]
     settings["hooks"]["BeforeTool"].append(_GEMINI_HOOK)
     settings_path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     print("  .gemini/settings.json  ->  BeforeTool hook registered")
@@ -295,7 +295,7 @@ def _uninstall_gemini_hook(project_dir: Path) -> None:
     except json.JSONDecodeError:
         return
     before_tool = settings.get("hooks", {}).get("BeforeTool", [])
-    filtered = [h for h in before_tool if "tracely360-lite" not in str(h)]
+    filtered = [h for h in before_tool if "tracely360" not in str(h)]
     if len(filtered) == len(before_tool):
         return
     settings["hooks"]["BeforeTool"] = filtered
@@ -304,16 +304,16 @@ def _uninstall_gemini_hook(project_dir: Path) -> None:
 
 
 def gemini_uninstall(project_dir: Path | None = None) -> None:
-    """Remove the tracely360-lite section from GEMINI.md, uninstall hook, and remove skill file."""
+    """Remove the tracely360 section from GEMINI.md, uninstall hook, and remove skill file."""
     # Remove skill file (mirror the install path detection)
     if platform.system() == "Windows":
-        skill_dst = Path.home() / ".agents" / "skills" / "tracely360-lite" / "SKILL.md"
+        skill_dst = Path.home() / ".agents" / "skills" / "tracely360" / "SKILL.md"
     else:
-        skill_dst = Path.home() / ".gemini" / "skills" / "tracely360-lite" / "SKILL.md"
+        skill_dst = Path.home() / ".gemini" / "skills" / "tracely360" / "SKILL.md"
     if skill_dst.exists():
         skill_dst.unlink()
         print(f"  skill removed    ->  {skill_dst}")
-    version_file = skill_dst.parent / ".tracely360lite_version"
+    version_file = skill_dst.parent / ".tracely360_version"
     if version_file.exists():
         version_file.unlink()
     for d in (skill_dst.parent, skill_dst.parent.parent):
@@ -328,37 +328,37 @@ def gemini_uninstall(project_dir: Path | None = None) -> None:
         return
     content = target.read_text(encoding="utf-8")
     if _GEMINI_MD_MARKER not in content:
-        print("tracely360-lite section not found in GEMINI.md - nothing to do")
+        print("tracely360 section not found in GEMINI.md - nothing to do")
         return
-    cleaned = re.sub(r"\n*## tracely360-lite\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
+    cleaned = re.sub(r"\n*## tracely360\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
     if cleaned:
         target.write_text(cleaned + "\n", encoding="utf-8")
-        print(f"tracely360-lite section removed from {target.resolve()}")
+        print(f"tracely360 section removed from {target.resolve()}")
     else:
         target.unlink()
         print(f"GEMINI.md was empty after removal - deleted {target.resolve()}")
     _uninstall_gemini_hook(project_dir or Path("."))
 
 
-_VSCODE_INSTRUCTIONS_MARKER = "## tracely360-lite"
+_VSCODE_INSTRUCTIONS_MARKER = "## tracely360"
 _VSCODE_INSTRUCTIONS_SECTION = """\
-## tracely360-lite
+## tracely360
 
-Before answering architecture or codebase questions, read `tracely360-lite-out/GRAPH_REPORT.md` if it exists.
-If `tracely360-lite-out/wiki/index.md` exists, navigate it for deep questions.
-Type `/tracely360-lite` in Copilot Chat to build or update the knowledge graph.
+Before answering architecture or codebase questions, read `tracely360-out/GRAPH_REPORT.md` if it exists.
+If `tracely360-out/wiki/index.md` exists, navigate it for deep questions.
+Type `/tracely360` in Copilot Chat to build or update the knowledge graph.
 """
 
 
 def vscode_install(project_dir: Path | None = None) -> None:
-    """Install tracely360-lite skill for VS Code Copilot Chat + write .github/copilot-instructions.md."""
+    """Install tracely360 skill for VS Code Copilot Chat + write .github/copilot-instructions.md."""
     skill_src = Path(__file__).parent / "skill-vscode.md"
     if not skill_src.exists():
         skill_src = Path(__file__).parent / "skill-copilot.md"
-    skill_dst = Path.home() / ".copilot" / "skills" / "tracely360-lite" / "SKILL.md"
+    skill_dst = Path.home() / ".copilot" / "skills" / "tracely360" / "SKILL.md"
     skill_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(skill_src, skill_dst)
-    (skill_dst.parent / ".tracely360lite_version").write_text(__version__, encoding="utf-8")
+    (skill_dst.parent / ".tracely360_version").write_text(__version__, encoding="utf-8")
     print(f"  skill installed  ->  {skill_dst}")
 
     instructions = (project_dir or Path(".")) / ".github" / "copilot-instructions.md"
@@ -369,23 +369,23 @@ def vscode_install(project_dir: Path | None = None) -> None:
             print(f"  {instructions}  ->  already configured (no change)")
         else:
             instructions.write_text(content.rstrip() + "\n\n" + _VSCODE_INSTRUCTIONS_SECTION, encoding="utf-8")
-            print(f"  {instructions}  ->  tracely360-lite section added")
+            print(f"  {instructions}  ->  tracely360 section added")
     else:
         instructions.write_text(_VSCODE_INSTRUCTIONS_SECTION, encoding="utf-8")
         print(f"  {instructions}  ->  created")
 
     print()
-    print("VS Code Copilot Chat configured. Type /tracely360-lite in the chat panel to build the graph.")
-    print("Note: for GitHub Copilot CLI (terminal), use: tracely360-lite copilot install")
+    print("VS Code Copilot Chat configured. Type /tracely360 in the chat panel to build the graph.")
+    print("Note: for GitHub Copilot CLI (terminal), use: tracely360 copilot install")
 
 
 def vscode_uninstall(project_dir: Path | None = None) -> None:
-    """Remove tracely360-lite VS Code Copilot Chat skill and .github/copilot-instructions.md section."""
-    skill_dst = Path.home() / ".copilot" / "skills" / "tracely360-lite" / "SKILL.md"
+    """Remove tracely360 VS Code Copilot Chat skill and .github/copilot-instructions.md section."""
+    skill_dst = Path.home() / ".copilot" / "skills" / "tracely360" / "SKILL.md"
     if skill_dst.exists():
         skill_dst.unlink()
         print(f"  skill removed    ->  {skill_dst}")
-    version_file = skill_dst.parent / ".tracely360lite_version"
+    version_file = skill_dst.parent / ".tracely360_version"
     if version_file.exists():
         version_file.unlink()
     for d in (skill_dst.parent, skill_dst.parent.parent, skill_dst.parent.parent.parent):
@@ -400,37 +400,37 @@ def vscode_uninstall(project_dir: Path | None = None) -> None:
     content = instructions.read_text(encoding="utf-8")
     if _VSCODE_INSTRUCTIONS_MARKER not in content:
         return
-    cleaned = re.sub(r"\n*## tracely360-lite\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
+    cleaned = re.sub(r"\n*## tracely360\n.*?(?=\n## |\Z)", "", content, flags=re.DOTALL).rstrip()
     if cleaned:
         instructions.write_text(cleaned + "\n", encoding="utf-8")
-        print(f"  tracely360-lite section removed from {instructions}")
+        print(f"  tracely360 section removed from {instructions}")
     else:
         instructions.unlink()
         print(f"  {instructions}  ->  deleted (was empty after removal)")
 
 
-_ANTIGRAVITY_RULES_PATH = Path(".agent") / "rules" / "tracely360_lite.md"
-_ANTIGRAVITY_WORKFLOW_PATH = Path(".agent") / "workflows" / "tracely360_lite.md"
+_ANTIGRAVITY_RULES_PATH = Path(".agent") / "rules" / "tracely360.md"
+_ANTIGRAVITY_WORKFLOW_PATH = Path(".agent") / "workflows" / "tracely360.md"
 
 _ANTIGRAVITY_RULES = """\
-## tracely360-lite
+## tracely360
 
-This project has a tracely360-lite knowledge graph at tracely360-lite-out/.
+This project has a tracely360 knowledge graph at tracely360-out/.
 
 Rules:
-- Before answering architecture or codebase questions, read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-lite-out/wiki/index.md exists, navigate it instead of reading raw files
-- If the tracely360-lite MCP server is active, utilize tools like `query_graph`, `get_node`, and `shortest_path` for precise architecture navigation instead of falling back to `grep`
-- After modifying code files in this session, run `tracely360-lite update .` to keep the graph current (AST-only, no API cost)
+- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
+- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
+- If the tracely360 MCP server is active, utilize tools like `query_graph`, `get_node`, and `shortest_path` for precise architecture navigation instead of falling back to `grep`
+- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
 _ANTIGRAVITY_WORKFLOW = """\
-# Workflow: tracely360-lite
-**Command:** /tracely360-lite
+# Workflow: tracely360
+**Command:** /tracely360
 **Description:** Turn any folder of files into a navigable knowledge graph
 
 ## Steps
-Follow the tracely360-lite skill installed at ~/.agent/skills/tracely360-lite/SKILL.md to run the full pipeline.
+Follow the tracely360 skill installed at ~/.agent/skills/tracely360/SKILL.md to run the full pipeline.
 
 If no path argument is given, use `.` (current directory).
 """
@@ -441,47 +441,47 @@ _KIRO_STEERING = """\
 inclusion: always
 ---
 
-tracely360-lite: A knowledge graph of this project lives in `tracely360-lite-out/`. \
-If `tracely360-lite-out/GRAPH_REPORT.md` exists, read it before answering architecture questions, \
+tracely360: A knowledge graph of this project lives in `tracely360-out/`. \
+If `tracely360-out/GRAPH_REPORT.md` exists, read it before answering architecture questions, \
 tracing dependencies, or searching files — it contains god nodes, community structure, \
 and surprising connections the graph found. Navigate by graph structure instead of grepping raw files.
 """
 
-_KIRO_STEERING_MARKER = "tracely360-lite: A knowledge graph of this project"
+_KIRO_STEERING_MARKER = "tracely360: A knowledge graph of this project"
 
 
 def _kiro_install(project_dir: Path) -> None:
-    """Write tracely360-lite skill + steering file for Kiro IDE/CLI."""
+    """Write tracely360 skill + steering file for Kiro IDE/CLI."""
     project_dir = project_dir or Path(".")
 
-    # Skill file → .kiro/skills/tracely360-lite/SKILL.md
+    # Skill file → .kiro/skills/tracely360/SKILL.md
     skill_src = Path(__file__).parent / "skill-kiro.md"
-    skill_dst = project_dir / ".kiro" / "skills" / "tracely360-lite" / "SKILL.md"
+    skill_dst = project_dir / ".kiro" / "skills" / "tracely360" / "SKILL.md"
     skill_dst.parent.mkdir(parents=True, exist_ok=True)
     skill_dst.write_text(skill_src.read_text(encoding="utf-8"), encoding="utf-8")
-    print(f"  {skill_dst.relative_to(project_dir)}  ->  /tracely360-lite skill")
+    print(f"  {skill_dst.relative_to(project_dir)}  ->  /tracely360 skill")
 
-    # Steering file → .kiro/steering/tracely360-lite.md (always-on)
+    # Steering file → .kiro/steering/tracely360.md (always-on)
     steering_dir = project_dir / ".kiro" / "steering"
     steering_dir.mkdir(parents=True, exist_ok=True)
-    steering_dst = steering_dir / "tracely360_lite.md"
+    steering_dst = steering_dir / "tracely360.md"
     if steering_dst.exists() and _KIRO_STEERING_MARKER in steering_dst.read_text(encoding="utf-8"):
-        print(f"  .kiro/steering/tracely360-lite.md  ->  already configured")
+        print(f"  .kiro/steering/tracely360.md  ->  already configured")
     else:
         steering_dst.write_text(_KIRO_STEERING, encoding="utf-8")
-        print(f"  .kiro/steering/tracely360-lite.md  ->  always-on steering written")
+        print(f"  .kiro/steering/tracely360.md  ->  always-on steering written")
 
     print()
     print("Kiro will now read the knowledge graph before every conversation.")
-    print("Use /tracely360-lite to build or update the graph.")
+    print("Use /tracely360 to build or update the graph.")
 
 
 def _kiro_uninstall(project_dir: Path) -> None:
-    """Remove tracely360-lite skill + steering file for Kiro."""
+    """Remove tracely360 skill + steering file for Kiro."""
     project_dir = project_dir or Path(".")
     removed = []
 
-    skill_dst = project_dir / ".kiro" / "skills" / "tracely360-lite" / "SKILL.md"
+    skill_dst = project_dir / ".kiro" / "skills" / "tracely360" / "SKILL.md"
     if skill_dst.exists():
         skill_dst.unlink()
         removed.append(str(skill_dst.relative_to(project_dir)))
@@ -491,7 +491,7 @@ def _kiro_uninstall(project_dir: Path) -> None:
         except OSError:
             pass
 
-    steering_dst = project_dir / ".kiro" / "steering" / "tracely360_lite.md"
+    steering_dst = project_dir / ".kiro" / "steering" / "tracely360.md"
     if steering_dst.exists():
         steering_dst.unlink()
         removed.append(str(steering_dst.relative_to(project_dir)))
@@ -500,8 +500,8 @@ def _kiro_uninstall(project_dir: Path) -> None:
 
 
 def _antigravity_install(project_dir: Path) -> None:
-    """Install tracely360-lite for Google Antigravity: skill + .agent/rules + .agent/workflows."""
-    # 1. Copy skill file to ~/.agent/skills/tracely360-lite/SKILL.md
+    """Install tracely360 for Google Antigravity: skill + .agent/rules + .agent/workflows."""
+    # 1. Copy skill file to ~/.agent/skills/tracely360/SKILL.md
     install(platform="antigravity")
 
     # 1.5. Inject YAML frontmatter for native Antigravity tool discovery
@@ -509,60 +509,60 @@ def _antigravity_install(project_dir: Path) -> None:
     if skill_dst.exists():
         content = skill_dst.read_text(encoding="utf-8")
         if not content.startswith("---\n"):
-            frontmatter = "---\nname: tracely360-lite-manager\ndescription: Rebuild the code graph or perform manual CLI queries when MCP server is offline.\n---\n\n"
+            frontmatter = "---\nname: tracely360-manager\ndescription: Rebuild the code graph or perform manual CLI queries when MCP server is offline.\n---\n\n"
             skill_dst.write_text(frontmatter + content, encoding="utf-8")
 
-    # 2. Write .agent/rules/tracely360-lite.md
+    # 2. Write .agent/rules/tracely360.md
     rules_path = project_dir / _ANTIGRAVITY_RULES_PATH
     rules_path.parent.mkdir(parents=True, exist_ok=True)
     if rules_path.exists():
-        print(f"tracely360-lite rule already exists at {rules_path} (no change)")
+        print(f"tracely360 rule already exists at {rules_path} (no change)")
     else:
         rules_path.write_text(_ANTIGRAVITY_RULES, encoding="utf-8")
-        print(f"tracely360-lite rule written to {rules_path.resolve()}")
+        print(f"tracely360 rule written to {rules_path.resolve()}")
 
-    # 3. Write .agent/workflows/tracely360-lite.md
+    # 3. Write .agent/workflows/tracely360.md
     wf_path = project_dir / _ANTIGRAVITY_WORKFLOW_PATH
     wf_path.parent.mkdir(parents=True, exist_ok=True)
     if wf_path.exists():
-        print(f"tracely360-lite workflow already exists at {wf_path} (no change)")
+        print(f"tracely360 workflow already exists at {wf_path} (no change)")
     else:
         wf_path.write_text(_ANTIGRAVITY_WORKFLOW, encoding="utf-8")
-        print(f"tracely360-lite workflow written to {wf_path.resolve()}")
+        print(f"tracely360 workflow written to {wf_path.resolve()}")
 
     print()
     print("Antigravity will now check the knowledge graph before answering")
-    print("codebase questions. Run /tracely360-lite first to build the graph.")
+    print("codebase questions. Run /tracely360 first to build the graph.")
     print()
     print("To enable full MCP architecture navigation, add this to ~/.gemini/antigravity/mcp_config.json:")
-    print('  "tracely360-lite": {')
+    print('  "tracely360": {')
     print('    "command": "uv",')
-    print('    "args": ["run", "--with", "tracely360-lite", "--with", "mcp", "-m", "tracely360_lite.serve", "${workspace.path}/tracely360-lite-out/graph.json"]')
+    print('    "args": ["run", "--with", "tracely360", "--with", "mcp", "-m", "tracely360.serve", "${workspace.path}/tracely360-out/graph.json"]')
     print('  }')
 
 
 def _antigravity_uninstall(project_dir: Path) -> None:
-    """Remove tracely360-lite Antigravity rules, workflow, and skill files."""
+    """Remove tracely360 Antigravity rules, workflow, and skill files."""
     # Remove rules file
     rules_path = project_dir / _ANTIGRAVITY_RULES_PATH
     if rules_path.exists():
         rules_path.unlink()
-        print(f"tracely360-lite rule removed from {rules_path.resolve()}")
+        print(f"tracely360 rule removed from {rules_path.resolve()}")
     else:
-        print("No tracely360-lite Antigravity rule found - nothing to do")
+        print("No tracely360 Antigravity rule found - nothing to do")
 
     # Remove workflow file
     wf_path = project_dir / _ANTIGRAVITY_WORKFLOW_PATH
     if wf_path.exists():
         wf_path.unlink()
-        print(f"tracely360-lite workflow removed from {wf_path.resolve()}")
+        print(f"tracely360 workflow removed from {wf_path.resolve()}")
 
     # Remove skill file
     skill_dst = Path.home() / _PLATFORM_CONFIG["antigravity"]["skill_dst"]
     if skill_dst.exists():
         skill_dst.unlink()
-        print(f"tracely360-lite skill removed from {skill_dst}")
-    version_file = skill_dst.parent / ".tracely360lite_version"
+        print(f"tracely360 skill removed from {skill_dst}")
+    version_file = skill_dst.parent / ".tracely360_version"
     if version_file.exists():
         version_file.unlink()
     for d in (skill_dst.parent, skill_dst.parent.parent, skill_dst.parent.parent.parent):
@@ -572,49 +572,49 @@ def _antigravity_uninstall(project_dir: Path) -> None:
             break
 
 
-_CURSOR_RULE_PATH = Path(".cursor") / "rules" / "tracely360_lite.mdc"
+_CURSOR_RULE_PATH = Path(".cursor") / "rules" / "tracely360.mdc"
 _CURSOR_RULE = """\
 ---
-description: tracely360-lite knowledge graph context
+description: tracely360 knowledge graph context
 alwaysApply: true
 ---
 
-This project has a tracely360-lite knowledge graph at tracely360-lite-out/.
+This project has a tracely360 knowledge graph at tracely360-out/.
 
-- Before answering architecture or codebase questions, read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure
-- If tracely360-lite-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `tracely360-lite update .` to keep the graph current (AST-only, no API cost)
+- Before answering architecture or codebase questions, read tracely360-out/GRAPH_REPORT.md for god nodes and community structure
+- If tracely360-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `tracely360 update .` to keep the graph current (AST-only, no API cost)
 """
 
 
 def _cursor_install(project_dir: Path) -> None:
-    """Write .cursor/rules/tracely360-lite.mdc with alwaysApply: true."""
+    """Write .cursor/rules/tracely360.mdc with alwaysApply: true."""
     rule_path = (project_dir or Path(".")) / _CURSOR_RULE_PATH
     rule_path.parent.mkdir(parents=True, exist_ok=True)
     if rule_path.exists():
-        print(f"tracely360-lite rule already exists at {rule_path} (no change)")
+        print(f"tracely360 rule already exists at {rule_path} (no change)")
         return
     rule_path.write_text(_CURSOR_RULE, encoding="utf-8")
-    print(f"tracely360-lite rule written to {rule_path.resolve()}")
+    print(f"tracely360 rule written to {rule_path.resolve()}")
     print()
     print("Cursor will now always include the knowledge graph context.")
-    print("Run /tracely360-lite . first to build the graph if you haven't already.")
+    print("Run /tracely360 . first to build the graph if you haven't already.")
 
 
 def _cursor_uninstall(project_dir: Path) -> None:
-    """Remove .cursor/rules/tracely360-lite.mdc."""
+    """Remove .cursor/rules/tracely360.mdc."""
     rule_path = (project_dir or Path(".")) / _CURSOR_RULE_PATH
     if not rule_path.exists():
-        print("No tracely360-lite Cursor rule found - nothing to do")
+        print("No tracely360 Cursor rule found - nothing to do")
         return
     rule_path.unlink()
-    print(f"tracely360-lite Cursor rule removed from {rule_path.resolve()}")
+    print(f"tracely360 Cursor rule removed from {rule_path.resolve()}")
 
 
 # OpenCode tool.execute.before plugin — fires before every tool call.
 # Injects a graph reminder into bash command output when graph.json exists.
 _OPENCODE_PLUGIN_JS = """\
-// tracely360-lite OpenCode plugin
+// tracely360 OpenCode plugin
 // Injects a knowledge graph reminder before bash tool calls when the graph exists.
 import { existsSync } from "fs";
 import { join } from "path";
@@ -625,11 +625,11 @@ export const GraphifyPlugin = async ({ directory }) => {
   return {
     "tool.execute.before": async (input, output) => {
       if (reminded) return;
-      if (!existsSync(join(directory, "tracely360-lite-out", "graph.json"))) return;
+      if (!existsSync(join(directory, "tracely360-out", "graph.json"))) return;
 
       if (input.tool === "bash") {
         output.args.command =
-          'echo "[tracely360-lite] Knowledge graph available. Read tracely360-lite-out/GRAPH_REPORT.md for god nodes and architecture context before searching files." && ' +
+          'echo "[tracely360] Knowledge graph available. Read tracely360-out/GRAPH_REPORT.md for god nodes and architecture context before searching files." && ' +
           output.args.command;
         reminded = true;
       }
@@ -638,12 +638,12 @@ export const GraphifyPlugin = async ({ directory }) => {
 };
 """
 
-_OPENCODE_PLUGIN_PATH = Path(".opencode") / "plugins" / "tracely360_lite.js"
+_OPENCODE_PLUGIN_PATH = Path(".opencode") / "plugins" / "tracely360.js"
 _OPENCODE_CONFIG_PATH = Path("opencode.json")
 
 
 def _install_opencode_plugin(project_dir: Path) -> None:
-    """Write tracely360-lite.js plugin and register it in opencode.json."""
+    """Write tracely360.js plugin and register it in opencode.json."""
     plugin_file = project_dir / _OPENCODE_PLUGIN_PATH
     plugin_file.parent.mkdir(parents=True, exist_ok=True)
     plugin_file.write_text(_OPENCODE_PLUGIN_JS, encoding="utf-8")
@@ -669,7 +669,7 @@ def _install_opencode_plugin(project_dir: Path) -> None:
 
 
 def _uninstall_opencode_plugin(project_dir: Path) -> None:
-    """Remove tracely360-lite.js plugin and deregister from opencode.json."""
+    """Remove tracely360.js plugin and deregister from opencode.json."""
     plugin_file = project_dir / _OPENCODE_PLUGIN_PATH
     if plugin_file.exists():
         plugin_file.unlink()
@@ -701,8 +701,8 @@ _CODEX_HOOK = {
                     {
                         "type": "command",
                         "command": (
-                            "[ -f tracely360-lite-out/graph.json ] && "
-                            r"""echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"tracely360-lite: Knowledge graph exists. Read tracely360-lite-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}}' """
+                            "[ -f tracely360-out/graph.json ] && "
+                            r"""echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"tracely360: Knowledge graph exists. Read tracely360-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files."}}' """
                             "|| true"
                         ),
                     }
@@ -714,7 +714,7 @@ _CODEX_HOOK = {
 
 
 def _install_codex_hook(project_dir: Path) -> None:
-    """Add tracely360-lite PreToolUse hook to .codex/hooks.json."""
+    """Add tracely360 PreToolUse hook to .codex/hooks.json."""
     hooks_path = project_dir / ".codex" / "hooks.json"
     hooks_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -727,14 +727,14 @@ def _install_codex_hook(project_dir: Path) -> None:
         existing = {}
 
     pre_tool = existing.setdefault("hooks", {}).setdefault("PreToolUse", [])
-    existing["hooks"]["PreToolUse"] = [h for h in pre_tool if "tracely360-lite" not in str(h)]
+    existing["hooks"]["PreToolUse"] = [h for h in pre_tool if "tracely360" not in str(h)]
     existing["hooks"]["PreToolUse"].extend(_CODEX_HOOK["hooks"]["PreToolUse"])
     hooks_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     print(f"  .codex/hooks.json  ->  PreToolUse hook registered")
 
 
 def _uninstall_codex_hook(project_dir: Path) -> None:
-    """Remove tracely360-lite PreToolUse hook from .codex/hooks.json."""
+    """Remove tracely360 PreToolUse hook from .codex/hooks.json."""
     hooks_path = project_dir / ".codex" / "hooks.json"
     if not hooks_path.exists():
         return
@@ -743,26 +743,26 @@ def _uninstall_codex_hook(project_dir: Path) -> None:
     except json.JSONDecodeError:
         return
     pre_tool = existing.get("hooks", {}).get("PreToolUse", [])
-    filtered = [h for h in pre_tool if "tracely360-lite" not in str(h)]
+    filtered = [h for h in pre_tool if "tracely360" not in str(h)]
     existing["hooks"]["PreToolUse"] = filtered
     hooks_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     print(f"  .codex/hooks.json  ->  PreToolUse hook removed")
 
 
 def _agents_install(project_dir: Path, platform: str) -> None:
-    """Write the tracely360-lite section to the local AGENTS.md (Codex/OpenCode/OpenClaw)."""
+    """Write the tracely360 section to the local AGENTS.md (Codex/OpenCode/OpenClaw)."""
     target = (project_dir or Path(".")) / "AGENTS.md"
 
     if target.exists():
         content = target.read_text(encoding="utf-8")
         if _AGENTS_MD_MARKER in content:
-            print(f"tracely360-lite already configured in AGENTS.md")
+            print(f"tracely360 already configured in AGENTS.md")
         else:
             target.write_text(content.rstrip() + "\n\n" + _AGENTS_MD_SECTION, encoding="utf-8")
-            print(f"tracely360-lite section written to {target.resolve()}")
+            print(f"tracely360 section written to {target.resolve()}")
     else:
         target.write_text(_AGENTS_MD_SECTION, encoding="utf-8")
-        print(f"tracely360-lite section written to {target.resolve()}")
+        print(f"tracely360 section written to {target.resolve()}")
 
     if platform == "codex":
         _install_codex_hook(project_dir or Path("."))
@@ -779,7 +779,7 @@ def _agents_install(project_dir: Path, platform: str) -> None:
 
 
 def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
-    """Remove the tracely360-lite section from the local AGENTS.md."""
+    """Remove the tracely360 section from the local AGENTS.md."""
     target = (project_dir or Path(".")) / "AGENTS.md"
 
     if not target.exists():
@@ -788,18 +788,18 @@ def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
 
     content = target.read_text(encoding="utf-8")
     if _AGENTS_MD_MARKER not in content:
-        print("tracely360-lite section not found in AGENTS.md - nothing to do")
+        print("tracely360 section not found in AGENTS.md - nothing to do")
         return
 
     cleaned = re.sub(
-        r"\n*## tracely360-lite\n.*?(?=\n## |\Z)",
+        r"\n*## tracely360\n.*?(?=\n## |\Z)",
         "",
         content,
         flags=re.DOTALL,
     ).rstrip()
     if cleaned:
         target.write_text(cleaned + "\n", encoding="utf-8")
-        print(f"tracely360-lite section removed from {target.resolve()}")
+        print(f"tracely360 section removed from {target.resolve()}")
     else:
         target.unlink()
         print(f"AGENTS.md was empty after removal - deleted {target.resolve()}")
@@ -809,20 +809,20 @@ def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
 
 
 def claude_install(project_dir: Path | None = None) -> None:
-    """Write the tracely360-lite section to the local CLAUDE.md."""
+    """Write the tracely360 section to the local CLAUDE.md."""
     target = (project_dir or Path(".")) / "CLAUDE.md"
 
     if target.exists():
         content = target.read_text(encoding="utf-8")
         if _CLAUDE_MD_MARKER in content:
-            print("tracely360-lite already configured in CLAUDE.md")
+            print("tracely360 already configured in CLAUDE.md")
             return
         new_content = content.rstrip() + "\n\n" + _CLAUDE_MD_SECTION
     else:
         new_content = _CLAUDE_MD_SECTION
 
     target.write_text(new_content, encoding="utf-8")
-    print(f"tracely360-lite section written to {target.resolve()}")
+    print(f"tracely360 section written to {target.resolve()}")
 
     # Also write Claude Code PreToolUse hook to .claude/settings.json
     _install_claude_hook(project_dir or Path("."))
@@ -833,7 +833,7 @@ def claude_install(project_dir: Path | None = None) -> None:
 
 
 def _install_claude_hook(project_dir: Path) -> None:
-    """Add tracely360-lite PreToolUse hook to .claude/settings.json."""
+    """Add tracely360 PreToolUse hook to .claude/settings.json."""
     settings_path = project_dir / ".claude" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -848,14 +848,14 @@ def _install_claude_hook(project_dir: Path) -> None:
     hooks = settings.setdefault("hooks", {})
     pre_tool = hooks.setdefault("PreToolUse", [])
 
-    hooks["PreToolUse"] = [h for h in pre_tool if not (h.get("matcher") == "Glob|Grep" and "tracely360-lite" in str(h))]
+    hooks["PreToolUse"] = [h for h in pre_tool if not (h.get("matcher") == "Glob|Grep" and "tracely360" in str(h))]
     hooks["PreToolUse"].append(_SETTINGS_HOOK)
     settings_path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     print(f"  .claude/settings.json  ->  PreToolUse hook registered")
 
 
 def _uninstall_claude_hook(project_dir: Path) -> None:
-    """Remove tracely360-lite PreToolUse hook from .claude/settings.json."""
+    """Remove tracely360 PreToolUse hook from .claude/settings.json."""
     settings_path = project_dir / ".claude" / "settings.json"
     if not settings_path.exists():
         return
@@ -864,7 +864,7 @@ def _uninstall_claude_hook(project_dir: Path) -> None:
     except json.JSONDecodeError:
         return
     pre_tool = settings.get("hooks", {}).get("PreToolUse", [])
-    filtered = [h for h in pre_tool if not (h.get("matcher") == "Glob|Grep" and "tracely360-lite" in str(h))]
+    filtered = [h for h in pre_tool if not (h.get("matcher") == "Glob|Grep" and "tracely360" in str(h))]
     if len(filtered) == len(pre_tool):
         return
     settings["hooks"]["PreToolUse"] = filtered
@@ -873,7 +873,7 @@ def _uninstall_claude_hook(project_dir: Path) -> None:
 
 
 def claude_uninstall(project_dir: Path | None = None) -> None:
-    """Remove the tracely360-lite section from the local CLAUDE.md."""
+    """Remove the tracely360 section from the local CLAUDE.md."""
     target = (project_dir or Path(".")) / "CLAUDE.md"
 
     if not target.exists():
@@ -882,19 +882,19 @@ def claude_uninstall(project_dir: Path | None = None) -> None:
 
     content = target.read_text(encoding="utf-8")
     if _CLAUDE_MD_MARKER not in content:
-        print("tracely360-lite section not found in CLAUDE.md - nothing to do")
+        print("tracely360 section not found in CLAUDE.md - nothing to do")
         return
 
-    # Remove the ## tracely360-lite section: from the marker to the next ## heading or EOF
+    # Remove the ## tracely360 section: from the marker to the next ## heading or EOF
     cleaned = re.sub(
-        r"\n*## tracely360-lite\n.*?(?=\n## |\Z)",
+        r"\n*## tracely360\n.*?(?=\n## |\Z)",
         "",
         content,
         flags=re.DOTALL,
     ).rstrip()
     if cleaned:
         target.write_text(cleaned + "\n", encoding="utf-8")
-        print(f"tracely360-lite section removed from {target.resolve()}")
+        print(f"tracely360 section removed from {target.resolve()}")
     else:
         target.unlink()
         print(f"CLAUDE.md was empty after removal - deleted {target.resolve()}")
@@ -911,14 +911,14 @@ def main() -> None:
             _check_skill_version(skill_dst)
 
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
-        print("Usage: tracely360-lite <command>")
+        print("Usage: tracely360 <command>")
         print()
         print("Commands:")
         print("  install [--platform P]  copy skill to platform config dir (claude|windows|codex|opencode|aider|claw|droid|trae|trae-cn|gemini|cursor|antigravity|hermes|kiro)")
         print("  path \"A\" \"B\"            shortest path between two nodes in graph.json")
-        print("    --graph <path>          path to graph.json (default tracely360-lite-out/graph.json)")
+        print("    --graph <path>          path to graph.json (default tracely360-out/graph.json)")
         print("  explain \"X\"             plain-language explanation of a node and its neighbors")
-        print("    --graph <path>          path to graph.json (default tracely360-lite-out/graph.json)")
+        print("    --graph <path>          path to graph.json (default tracely360-out/graph.json)")
         print("  add <url>               fetch a URL and save it to ./raw, then update the graph")
         print("    --author \"Name\"         tag the author of the content")
         print("    --contributor \"Name\"    tag who added it to the corpus")
@@ -929,46 +929,46 @@ def main() -> None:
         print("  query \"<question>\"       BFS traversal of graph.json for a question")
         print("    --dfs                   use depth-first instead of breadth-first")
         print("    --budget N              cap output at N tokens (default 2000)")
-        print("    --graph <path>          path to graph.json (default tracely360-lite-out/graph.json)")
-        print("  save-result             save a Q&A result to tracely360-lite-out/memory/ for graph feedback loop")
+        print("    --graph <path>          path to graph.json (default tracely360-out/graph.json)")
+        print("  save-result             save a Q&A result to tracely360-out/memory/ for graph feedback loop")
         print("    --question Q            the question asked")
         print("    --answer A              the answer to save")
         print("    --type T                query type: query|path_query|explain (default: query)")
         print("    --nodes N1 N2 ...       source node labels cited in the answer")
-        print("    --memory-dir DIR        memory directory (default: tracely360-lite-out/memory)")
+        print("    --memory-dir DIR        memory directory (default: tracely360-out/memory)")
         print("  benchmark [graph.json]  measure token reduction vs naive full-corpus approach")
         print("  hook install            install post-commit/post-checkout git hooks (all platforms)")
         print("  hook uninstall          remove git hooks")
         print("  hook status             check if git hooks are installed")
         print("  gemini install          write GEMINI.md section + BeforeTool hook (Gemini CLI)")
         print("  gemini uninstall        remove GEMINI.md section + BeforeTool hook")
-        print("  cursor install          write .cursor/rules/tracely360-lite.mdc (Cursor)")
-        print("  cursor uninstall        remove .cursor/rules/tracely360-lite.mdc")
-        print("  claude install          write tracely360-lite section to CLAUDE.md + PreToolUse hook (Claude Code)")
-        print("  claude uninstall        remove tracely360-lite section from CLAUDE.md + PreToolUse hook")
-        print("  codex install           write tracely360-lite section to AGENTS.md (Codex)")
-        print("  codex uninstall         remove tracely360-lite section from AGENTS.md")
-        print("  opencode install        write tracely360-lite section to AGENTS.md + tool.execute.before plugin (OpenCode)")
-        print("  opencode uninstall      remove tracely360-lite section from AGENTS.md + plugin")
-        print("  aider install           write tracely360-lite section to AGENTS.md (Aider)")
-        print("  aider uninstall         remove tracely360-lite section from AGENTS.md")
-        print("  copilot install         copy tracely360-lite skill to ~/.copilot/skills (GitHub Copilot CLI)")
-        print("  copilot uninstall       remove tracely360-lite skill from ~/.copilot/skills")
+        print("  cursor install          write .cursor/rules/tracely360.mdc (Cursor)")
+        print("  cursor uninstall        remove .cursor/rules/tracely360.mdc")
+        print("  claude install          write tracely360 section to CLAUDE.md + PreToolUse hook (Claude Code)")
+        print("  claude uninstall        remove tracely360 section from CLAUDE.md + PreToolUse hook")
+        print("  codex install           write tracely360 section to AGENTS.md (Codex)")
+        print("  codex uninstall         remove tracely360 section from AGENTS.md")
+        print("  opencode install        write tracely360 section to AGENTS.md + tool.execute.before plugin (OpenCode)")
+        print("  opencode uninstall      remove tracely360 section from AGENTS.md + plugin")
+        print("  aider install           write tracely360 section to AGENTS.md (Aider)")
+        print("  aider uninstall         remove tracely360 section from AGENTS.md")
+        print("  copilot install         copy tracely360 skill to ~/.copilot/skills (GitHub Copilot CLI)")
+        print("  copilot uninstall       remove tracely360 skill from ~/.copilot/skills")
         print("  vscode install          configure VS Code Copilot Chat (skill + .github/copilot-instructions.md)")
         print("  vscode uninstall        remove VS Code Copilot Chat configuration")
-        print("  claw install            write tracely360-lite section to AGENTS.md (OpenClaw)")
-        print("  claw uninstall          remove tracely360-lite section from AGENTS.md")
-        print("  droid install           write tracely360-lite section to AGENTS.md (Factory Droid)")
-        print("  droid uninstall        remove tracely360-lite section from AGENTS.md")
-        print("  trae install            write tracely360-lite section to AGENTS.md (Trae)")
-        print("  trae uninstall         remove tracely360-lite section from AGENTS.md")
-        print("  trae-cn install         write tracely360-lite section to AGENTS.md (Trae CN)")
-        print("  trae-cn uninstall      remove tracely360-lite section from AGENTS.md")
+        print("  claw install            write tracely360 section to AGENTS.md (OpenClaw)")
+        print("  claw uninstall          remove tracely360 section from AGENTS.md")
+        print("  droid install           write tracely360 section to AGENTS.md (Factory Droid)")
+        print("  droid uninstall        remove tracely360 section from AGENTS.md")
+        print("  trae install            write tracely360 section to AGENTS.md (Trae)")
+        print("  trae uninstall         remove tracely360 section from AGENTS.md")
+        print("  trae-cn install         write tracely360 section to AGENTS.md (Trae CN)")
+        print("  trae-cn uninstall      remove tracely360 section from AGENTS.md")
         print("  antigravity install     write .agent/rules + .agent/workflows + skill (Google Antigravity)")
         print("  antigravity uninstall   remove .agent/rules, .agent/workflows, and skill")
-        print("  hermes install          write skill to ~/.hermes/skills/tracely360-lite/ (Hermes)")
-        print("  hermes uninstall        remove skill from ~/.hermes/skills/tracely360-lite/")
-        print("  kiro install            write skill to .kiro/skills/tracely360-lite/ + steering file (Kiro IDE/CLI)")
+        print("  hermes install          write skill to ~/.hermes/skills/tracely360/ (Hermes)")
+        print("  hermes uninstall        remove skill from ~/.hermes/skills/tracely360/")
+        print("  kiro install            write skill to .kiro/skills/tracely360/ + steering file (Kiro IDE/CLI)")
         print("  kiro uninstall          remove skill + steering file")
         print()
         return
@@ -997,7 +997,7 @@ def main() -> None:
         elif subcmd == "uninstall":
             claude_uninstall()
         else:
-            print("Usage: tracely360-lite claude [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 claude [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "gemini":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1006,7 +1006,7 @@ def main() -> None:
         elif subcmd == "uninstall":
             gemini_uninstall()
         else:
-            print("Usage: tracely360-lite gemini [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 gemini [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "cursor":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1015,7 +1015,7 @@ def main() -> None:
         elif subcmd == "uninstall":
             _cursor_uninstall(Path("."))
         else:
-            print("Usage: tracely360-lite cursor [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 cursor [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "vscode":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1024,7 +1024,7 @@ def main() -> None:
         elif subcmd == "uninstall":
             vscode_uninstall()
         else:
-            print("Usage: tracely360-lite vscode [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 vscode [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "copilot":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1036,7 +1036,7 @@ def main() -> None:
             if skill_dst.exists():
                 skill_dst.unlink()
                 removed.append(f"skill removed: {skill_dst}")
-            version_file = skill_dst.parent / ".tracely360lite_version"
+            version_file = skill_dst.parent / ".tracely360_version"
             if version_file.exists():
                 version_file.unlink()
             for d in (skill_dst.parent, skill_dst.parent.parent, skill_dst.parent.parent.parent):
@@ -1046,7 +1046,7 @@ def main() -> None:
                     break
             print("; ".join(removed) if removed else "nothing to remove")
         else:
-            print("Usage: tracely360-lite copilot [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 copilot [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "kiro":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1055,7 +1055,7 @@ def main() -> None:
         elif subcmd == "uninstall":
             _kiro_uninstall(Path("."))
         else:
-            print("Usage: tracely360-lite kiro [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 kiro [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd in ("aider", "codex", "opencode", "claw", "droid", "trae", "trae-cn", "hermes"):
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1066,7 +1066,7 @@ def main() -> None:
             if cmd == "codex":
                 _uninstall_codex_hook(Path("."))
         else:
-            print(f"Usage: tracely360-lite {cmd} [install|uninstall]", file=sys.stderr)
+            print(f"Usage: tracely360 {cmd} [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "antigravity":
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -1075,10 +1075,10 @@ def main() -> None:
         elif subcmd == "uninstall":
             _antigravity_uninstall(Path("."))
         else:
-            print("Usage: tracely360-lite antigravity [install|uninstall]", file=sys.stderr)
+            print("Usage: tracely360 antigravity [install|uninstall]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "hook":
-        from tracely360_lite.hooks import install as hook_install, uninstall as hook_uninstall, status as hook_status
+        from tracely360.hooks import install as hook_install, uninstall as hook_uninstall, status as hook_status
         subcmd = sys.argv[2] if len(sys.argv) > 2 else ""
         if subcmd == "install":
             print(hook_install(Path(".")))
@@ -1087,19 +1087,19 @@ def main() -> None:
         elif subcmd == "status":
             print(hook_status(Path(".")))
         else:
-            print("Usage: tracely360-lite hook [install|uninstall|status]", file=sys.stderr)
+            print("Usage: tracely360 hook [install|uninstall|status]", file=sys.stderr)
             sys.exit(1)
     elif cmd == "query":
         if len(sys.argv) < 3:
-            print("Usage: tracely360-lite query \"<question>\" [--dfs] [--budget N] [--graph path]", file=sys.stderr)
+            print("Usage: tracely360 query \"<question>\" [--dfs] [--budget N] [--graph path]", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.serve import _score_nodes, _bfs, _dfs, _subgraph_to_text
-        from tracely360_lite.security import sanitize_label
+        from tracely360.serve import _score_nodes, _bfs, _dfs, _subgraph_to_text
+        from tracely360.security import sanitize_label
         from networkx.readwrite import json_graph
         question = sys.argv[2]
         use_dfs = "--dfs" in sys.argv
         budget = 2000
-        graph_path = "tracely360-lite-out/graph.json"
+        graph_path = "tracely360-out/graph.json"
         args = sys.argv[3:]
         i = 0
         while i < len(args):
@@ -1148,16 +1148,16 @@ def main() -> None:
         nodes, edges = (_dfs if use_dfs else _bfs)(G, start, depth=2)
         print(_subgraph_to_text(G, nodes, edges, token_budget=budget))
     elif cmd == "save-result":
-        # tracely360-lite save-result --question Q --answer A --type T [--nodes N1 N2 ...]
+        # tracely360 save-result --question Q --answer A --type T [--nodes N1 N2 ...]
         import argparse as _ap
-        p = _ap.ArgumentParser(prog="tracely360-lite save-result")
+        p = _ap.ArgumentParser(prog="tracely360 save-result")
         p.add_argument("--question", required=True)
         p.add_argument("--answer", required=True)
         p.add_argument("--type", dest="query_type", default="query")
         p.add_argument("--nodes", nargs="*", default=[])
-        p.add_argument("--memory-dir", default="tracely360-lite-out/memory")
+        p.add_argument("--memory-dir", default="tracely360-out/memory")
         opts = p.parse_args(sys.argv[2:])
-        from tracely360_lite.ingest import save_query_result as _sqr
+        from tracely360.ingest import save_query_result as _sqr
         out = _sqr(
             question=opts.question,
             answer=opts.answer,
@@ -1168,14 +1168,14 @@ def main() -> None:
         print(f"Saved to {out}")
     elif cmd == "path":
         if len(sys.argv) < 4:
-            print("Usage: tracely360-lite path \"<source>\" \"<target>\" [--graph path]", file=sys.stderr)
+            print("Usage: tracely360 path \"<source>\" \"<target>\" [--graph path]", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.serve import _score_nodes
+        from tracely360.serve import _score_nodes
         from networkx.readwrite import json_graph
         import networkx as _nx
         source_label = sys.argv[2]
         target_label = sys.argv[3]
-        graph_path = "tracely360-lite-out/graph.json"
+        graph_path = "tracely360-out/graph.json"
         args = sys.argv[4:]
         for i, a in enumerate(args):
             if a == "--graph" and i + 1 < len(args):
@@ -1218,12 +1218,12 @@ def main() -> None:
 
     elif cmd == "explain":
         if len(sys.argv) < 3:
-            print("Usage: tracely360-lite explain \"<node>\" [--graph path]", file=sys.stderr)
+            print("Usage: tracely360 explain \"<node>\" [--graph path]", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.serve import _find_node
+        from tracely360.serve import _find_node
         from networkx.readwrite import json_graph
         label = sys.argv[2]
-        graph_path = "tracely360-lite-out/graph.json"
+        graph_path = "tracely360-out/graph.json"
         args = sys.argv[3:]
         for i, a in enumerate(args):
             if a == "--graph" and i + 1 < len(args):
@@ -1262,9 +1262,9 @@ def main() -> None:
 
     elif cmd == "add":
         if len(sys.argv) < 3:
-            print("Usage: tracely360-lite add <url> [--author Name] [--contributor Name] [--dir ./raw]", file=sys.stderr)
+            print("Usage: tracely360 add <url> [--author Name] [--contributor Name] [--dir ./raw]", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.ingest import ingest as _ingest
+        from tracely360.ingest import ingest as _ingest
         url = sys.argv[2]
         author: str | None = None
         contributor: str | None = None
@@ -1283,7 +1283,7 @@ def main() -> None:
         try:
             saved = _ingest(url, target_dir, author=author, contributor=contributor)
             print(f"Saved to {saved}")
-            print("Run /tracely360-lite --update in your AI assistant to update the graph.")
+            print("Run /tracely360 --update in your AI assistant to update the graph.")
         except Exception as exc:
             print(f"error: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -1293,7 +1293,7 @@ def main() -> None:
         if not watch_path.exists():
             print(f"error: path not found: {watch_path}", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.watch import watch as _watch
+        from tracely360.watch import watch as _watch
         try:
             _watch(watch_path)
         except ImportError as exc:
@@ -1302,16 +1302,16 @@ def main() -> None:
 
     elif cmd == "cluster-only":
         watch_path = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(".")
-        graph_json = watch_path / "tracely360-lite-out" / "graph.json"
+        graph_json = watch_path / "tracely360-out" / "graph.json"
         if not graph_json.exists():
-            print(f"error: no graph found at {graph_json} — run /tracely360-lite first", file=sys.stderr)
+            print(f"error: no graph found at {graph_json} — run /tracely360 first", file=sys.stderr)
             sys.exit(1)
         from networkx.readwrite import json_graph as _jg
-        from tracely360_lite.build import build_from_json
-        from tracely360_lite.cluster import cluster, score_all
-        from tracely360_lite.analyze import god_nodes, surprising_connections, suggest_questions
-        from tracely360_lite.report import generate
-        from tracely360_lite.export import to_json, to_html
+        from tracely360.build import build_from_json
+        from tracely360.cluster import cluster, score_all
+        from tracely360.analyze import god_nodes, surprising_connections, suggest_questions
+        from tracely360.report import generate
+        from tracely360.export import to_json, to_html
         print("Loading existing graph...")
         _raw = json.loads(graph_json.read_text(encoding="utf-8"))
         G = build_from_json(_raw)
@@ -1327,7 +1327,7 @@ def main() -> None:
         report = generate(G, communities, cohesion, labels, gods, surprises,
                           {"warning": "cluster-only mode — file stats not available"},
                           tokens, str(watch_path), suggested_questions=questions)
-        out = watch_path / "tracely360-lite-out"
+        out = watch_path / "tracely360-out"
         (out / "GRAPH_REPORT.md").write_text(report, encoding="utf-8")
         to_json(G, communities, str(out / "graph.json"))
         to_html(G, communities, str(out / "graph.html"), community_labels=labels or None)
@@ -1338,21 +1338,21 @@ def main() -> None:
         if not watch_path.exists():
             print(f"error: path not found: {watch_path}", file=sys.stderr)
             sys.exit(1)
-        from tracely360_lite.watch import _rebuild_code
+        from tracely360.watch import _rebuild_code
         print(f"Re-extracting code files in {watch_path} (no LLM needed)...")
         ok = _rebuild_code(watch_path)
         if ok:
-            print("Code graph updated. For doc/paper/image changes run /tracely360-lite --update in your AI assistant.")
+            print("Code graph updated. For doc/paper/image changes run /tracely360 --update in your AI assistant.")
         else:
             print("Nothing to update or rebuild failed — check output above.", file=sys.stderr)
             sys.exit(1)
 
     elif cmd == "benchmark":
-        from tracely360_lite.benchmark import run_benchmark, print_benchmark
-        graph_path = sys.argv[2] if len(sys.argv) > 2 else "tracely360-lite-out/graph.json"
+        from tracely360.benchmark import run_benchmark, print_benchmark
+        graph_path = sys.argv[2] if len(sys.argv) > 2 else "tracely360-out/graph.json"
         # Try to load corpus_words from detect output
         corpus_words = None
-        detect_path = Path(".tracely360lite_detect.json")
+        detect_path = Path(".tracely360_detect.json")
         if detect_path.exists():
             try:
                 detect_data = json.loads(detect_path.read_text(encoding="utf-8"))
@@ -1363,7 +1363,7 @@ def main() -> None:
         print_benchmark(result)
     else:
         print(f"error: unknown command '{cmd}'", file=sys.stderr)
-        print("Run 'tracely360-lite --help' for usage.", file=sys.stderr)
+        print("Run 'tracely360 --help' for usage.", file=sys.stderr)
         sys.exit(1)
 
 

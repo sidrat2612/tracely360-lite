@@ -2,9 +2,9 @@
 import json
 import networkx as nx
 from pathlib import Path
-from tracely360_lite.build import build_from_json
-from tracely360_lite.cluster import cluster
-from tracely360_lite.analyze import god_nodes, surprising_connections, _is_concept_node, graph_diff, _surprise_score, _file_category
+from tracely360.build import build_from_json
+from tracely360.cluster import cluster
+from tracely360.analyze import god_nodes, surprising_connections, _is_concept_node, graph_diff, _surprise_score, _file_category
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

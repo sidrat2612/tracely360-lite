@@ -8,7 +8,7 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures"
 # ── Flask ────────────────────────────────────────────────────────────────────
 
 def test_flask_endpoint_count():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     # @app.route('/health', methods=['GET']) → 1
@@ -19,7 +19,7 @@ def test_flask_endpoint_count():
 
 
 def test_flask_methods():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     methods = {(e["method"], e["path"]) for e in eps}
@@ -31,7 +31,7 @@ def test_flask_methods():
 
 
 def test_flask_edges():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     ep_edges = [e for e in result["edges"] if e["relation"] == "exposes_endpoint"]
     # All 5 endpoints should have edges from their handler functions
@@ -43,7 +43,7 @@ def test_flask_edges():
 
 
 def test_flask_framework_tag():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     for ep in eps:
@@ -53,7 +53,7 @@ def test_flask_framework_tag():
 # ── Express.js ───────────────────────────────────────────────────────────────
 
 def test_express_endpoint_count():
-    from tracely360_lite.extract import extract_js
+    from tracely360.extract import extract_js
     result = extract_js(FIXTURE_DIR / "sample_express.js")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     # app.get, app.post, app.delete, app.put + router.get, router.post = 6
@@ -61,7 +61,7 @@ def test_express_endpoint_count():
 
 
 def test_express_methods():
-    from tracely360_lite.extract import extract_js
+    from tracely360.extract import extract_js
     result = extract_js(FIXTURE_DIR / "sample_express.js")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     methods = {(e["method"], e["path"]) for e in eps}
@@ -74,7 +74,7 @@ def test_express_methods():
 
 
 def test_express_handler_edges():
-    from tracely360_lite.extract import extract_js
+    from tracely360.extract import extract_js
     result = extract_js(FIXTURE_DIR / "sample_express.js")
     ep_edges = [e for e in result["edges"] if e["relation"] == "exposes_endpoint"]
     # Handler edges may be filtered if handler IDs don't match seen_ids format;
@@ -83,7 +83,7 @@ def test_express_handler_edges():
 
 
 def test_express_framework_tag():
-    from tracely360_lite.extract import extract_js
+    from tracely360.extract import extract_js
     result = extract_js(FIXTURE_DIR / "sample_express.js")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     for ep in eps:
@@ -93,7 +93,7 @@ def test_express_framework_tag():
 # ── Spring Java ──────────────────────────────────────────────────────────────
 
 def test_spring_endpoint_count():
-    from tracely360_lite.extract import extract_java
+    from tracely360.extract import extract_java
     result = extract_java(FIXTURE_DIR / "sample_spring.java")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     # @GetMapping("/users"), @PostMapping("/users"), @DeleteMapping("/users/{id}"), @RequestMapping("/ping")
@@ -101,7 +101,7 @@ def test_spring_endpoint_count():
 
 
 def test_spring_prefix_resolution():
-    from tracely360_lite.extract import extract_java
+    from tracely360.extract import extract_java
     result = extract_java(FIXTURE_DIR / "sample_spring.java")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     paths = {e["path"] for e in eps}
@@ -112,7 +112,7 @@ def test_spring_prefix_resolution():
 
 
 def test_spring_methods():
-    from tracely360_lite.extract import extract_java
+    from tracely360.extract import extract_java
     result = extract_java(FIXTURE_DIR / "sample_spring.java")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     method_path = {(e["method"], e["path"]) for e in eps}
@@ -123,7 +123,7 @@ def test_spring_methods():
 
 
 def test_spring_framework_tag():
-    from tracely360_lite.extract import extract_java
+    from tracely360.extract import extract_java
     result = extract_java(FIXTURE_DIR / "sample_spring.java")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     for ep in eps:
@@ -133,7 +133,7 @@ def test_spring_framework_tag():
 # ── Go / Gin ────────────────────────────────────────────────────────────────
 
 def test_gin_endpoint_count():
-    from tracely360_lite.extract import extract_go
+    from tracely360.extract import extract_go
     result = extract_go(FIXTURE_DIR / "sample_gin.go")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     # r.GET, r.POST, r.DELETE + api.GET, api.POST = 5
@@ -141,7 +141,7 @@ def test_gin_endpoint_count():
 
 
 def test_gin_methods():
-    from tracely360_lite.extract import extract_go
+    from tracely360.extract import extract_go
     result = extract_go(FIXTURE_DIR / "sample_gin.go")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     methods = {(e["method"], e["path"]) for e in eps}
@@ -151,7 +151,7 @@ def test_gin_methods():
 
 
 def test_gin_framework_tag():
-    from tracely360_lite.extract import extract_go
+    from tracely360.extract import extract_go
     result = extract_go(FIXTURE_DIR / "sample_gin.go")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     for ep in eps:
@@ -161,7 +161,7 @@ def test_gin_framework_tag():
 # ── Endpoint node schema ────────────────────────────────────────────────────
 
 def test_endpoint_node_schema():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     required_keys = {"id", "label", "file_type", "method", "path", "framework", "source_file", "source_location"}
@@ -170,7 +170,7 @@ def test_endpoint_node_schema():
 
 
 def test_endpoint_edge_schema():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     ep_edges = [e for e in result["edges"] if e["relation"] == "exposes_endpoint"]
     required_keys = {"source", "target", "relation", "confidence", "source_file", "source_location", "weight"}
@@ -183,14 +183,14 @@ def test_endpoint_edge_schema():
 # ── No endpoints in non-web code ────────────────────────────────────────────
 
 def test_no_endpoints_in_plain_python():
-    from tracely360_lite.extract import extract_python
+    from tracely360.extract import extract_python
     result = extract_python(FIXTURE_DIR / "sample_calls.py")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     assert len(eps) == 0
 
 
 def test_no_endpoints_in_plain_c():
-    from tracely360_lite.extract import extract_c
+    from tracely360.extract import extract_c
     result = extract_c(FIXTURE_DIR / "sample.c")
     eps = [n for n in result["nodes"] if n.get("file_type") == "endpoint"]
     assert len(eps) == 0
@@ -199,8 +199,8 @@ def test_no_endpoints_in_plain_c():
 # ── Validation integration ───────────────────────────────────────────────────
 
 def test_endpoint_passes_validation():
-    from tracely360_lite.extract import extract_python
-    from tracely360_lite.validate import validate_extraction
+    from tracely360.extract import extract_python
+    from tracely360.validate import validate_extraction
     result = extract_python(FIXTURE_DIR / "sample_flask.py")
     # Check endpoint nodes pass schema validation (test with nodes only, no edges,
     # since exposes_endpoint edges reference function nodes as source)
@@ -215,12 +215,12 @@ def test_endpoint_passes_validation():
 @pytest.mark.integration
 def test_endpoint_pipeline_integration(tmp_path):
     """End-to-end: extract Flask fixture → build graph → cluster → export HTML with endpoints."""
-    from tracely360_lite.extract import extract_python
-    from tracely360_lite.build import build_from_json
-    from tracely360_lite.cluster import cluster, score_all
-    from tracely360_lite.analyze import god_nodes, surprising_connections
-    from tracely360_lite.report import generate
-    from tracely360_lite.export import to_html, to_json
+    from tracely360.extract import extract_python
+    from tracely360.build import build_from_json
+    from tracely360.cluster import cluster, score_all
+    from tracely360.analyze import god_nodes, surprising_connections
+    from tracely360.report import generate
+    from tracely360.export import to_html, to_json
 
     extraction = extract_python(FIXTURE_DIR / "sample_flask.py")
     assert any(n.get("file_type") == "endpoint" for n in extraction["nodes"])
@@ -251,7 +251,7 @@ def test_endpoint_pipeline_integration(tmp_path):
 
     # Report includes endpoint section
     community_labels = {cid: f"Group {cid}" for cid in communities}
-    from tracely360_lite.detect import detect
+    from tracely360.detect import detect
     detection = detect(FIXTURE_DIR)
     report = generate(
         G, communities, cohesion, community_labels,

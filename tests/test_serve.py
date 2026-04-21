@@ -4,7 +4,7 @@ import pytest
 import networkx as nx
 from networkx.readwrite import json_graph
 
-from tracely360_lite.serve import (
+from tracely360.serve import (
     _communities_from_graph,
     _score_nodes,
     _bfs,
@@ -147,7 +147,7 @@ def test_load_graph_roundtrip(tmp_path):
     assert G2.number_of_edges() == G.number_of_edges()
 
 def test_load_graph_missing_file(tmp_path):
-    tracely360_dir = tmp_path / "tracely360-lite-out"
+    tracely360_dir = tmp_path / "tracely360-out"
     tracely360_dir.mkdir()
     with pytest.raises(SystemExit):
         _load_graph(str(tracely360_dir / "nonexistent.json"))

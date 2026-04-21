@@ -3,27 +3,27 @@ import time
 from pathlib import Path
 import pytest
 
-from tracely360_lite.watch import _notify_only, _WATCHED_EXTENSIONS
+from tracely360.watch import _notify_only, _WATCHED_EXTENSIONS
 
 
 # --- _notify_only ---
 
 def test_notify_only_creates_flag(tmp_path):
     _notify_only(tmp_path)
-    flag = tmp_path / "tracely360-lite-out" / "needs_update"
+    flag = tmp_path / "tracely360-out" / "needs_update"
     assert flag.exists()
     assert flag.read_text() == "1"
 
 def test_notify_only_creates_flag_dir(tmp_path):
-    # tracely360-lite-out dir does not exist yet
-    assert not (tmp_path / "tracely360-lite-out").exists()
+    # tracely360-out dir does not exist yet
+    assert not (tmp_path / "tracely360-out").exists()
     _notify_only(tmp_path)
-    assert (tmp_path / "tracely360-lite-out").is_dir()
+    assert (tmp_path / "tracely360-out").is_dir()
 
 def test_notify_only_idempotent(tmp_path):
     _notify_only(tmp_path)
     _notify_only(tmp_path)
-    flag = tmp_path / "tracely360-lite-out" / "needs_update"
+    flag = tmp_path / "tracely360-out" / "needs_update"
     assert flag.read_text() == "1"
 
 
@@ -63,6 +63,6 @@ def test_watch_raises_without_watchdog(tmp_path, monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", mock_import)
 
-    from tracely360_lite.watch import watch
+    from tracely360.watch import watch
     with pytest.raises(ImportError, match="watchdog not installed"):
         watch(tmp_path)

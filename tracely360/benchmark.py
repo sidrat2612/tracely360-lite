@@ -1,4 +1,4 @@
-"""Token-reduction benchmark - measures how much context tracely360-lite saves vs naive full-corpus approach."""
+"""Token-reduction benchmark - measures how much context tracely360 saves vs naive full-corpus approach."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -62,11 +62,11 @@ _SAMPLE_QUESTIONS = [
 
 
 def run_benchmark(
-    graph_path: str = "tracely360-lite-out/graph.json",
+    graph_path: str = "tracely360-out/graph.json",
     corpus_words: int | None = None,
     questions: list[str] | None = None,
 ) -> dict:
-    """Measure token reduction: corpus tokens vs tracely360-lite query tokens.
+    """Measure token reduction: corpus tokens vs tracely360 query tokens.
 
     Args:
         graph_path: path to the built graph
@@ -117,7 +117,7 @@ def print_benchmark(result: dict) -> None:
         print(f"Benchmark error: {result['error']}")
         return
 
-    print(f"\ntracely360-lite token reduction benchmark")
+    print(f"\ntracely360 token reduction benchmark")
     print(f"{'─' * 50}")
     print(f"  Corpus:          {result['corpus_words']:,} words → ~{result['corpus_tokens']:,} tokens (naive)")
     print(f"  Graph:           {result['nodes']:,} nodes, {result['edges']:,} edges")

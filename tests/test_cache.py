@@ -1,7 +1,7 @@
-"""Tests for tracely360-lite/cache.py."""
+"""Tests for tracely360/cache.py."""
 import pytest
 from pathlib import Path
-from tracely360_lite.cache import file_hash, cache_dir, load_cached, save_cached, cached_files, clear_cache, _body_content
+from tracely360.cache import file_hash, cache_dir, load_cached, save_cached, cached_files, clear_cache, _body_content
 
 
 @pytest.fixture
@@ -67,11 +67,11 @@ def test_cached_files(tmp_path, cache_root):
 
 
 def test_clear_cache(tmp_file, cache_root):
-    """clear_cache removes all .json files from tracely360-lite-out/cache/."""
+    """clear_cache removes all .json files from tracely360-out/cache/."""
     save_cached(tmp_file, {"nodes": [], "edges": []}, root=cache_root)
-    assert len(list((cache_root / "tracely360-lite-out" / "cache").glob("*.json"))) > 0
+    assert len(list((cache_root / "tracely360-out" / "cache").glob("*.json"))) > 0
     clear_cache(cache_root)
-    assert len(list((cache_root / "tracely360-lite-out" / "cache").glob("*.json"))) == 0
+    assert len(list((cache_root / "tracely360-out" / "cache").glob("*.json"))) == 0
 
 
 def test_md_frontmatter_only_change_same_hash(tmp_path):

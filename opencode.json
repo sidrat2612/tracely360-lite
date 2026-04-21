@@ -1,5 +1,5 @@
 {
   "plugin": [
-    ".opencode/plugins/tracely360_lite.js"
+    ".opencode/plugins/tracely360.js"
   ]
 }

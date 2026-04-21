@@ -1,5 +1,5 @@
 import pytest
-from tracely360_lite.validate import validate_extraction, assert_valid
+from tracely360.validate import validate_extraction, assert_valid
 
 VALID = {
     "nodes": [

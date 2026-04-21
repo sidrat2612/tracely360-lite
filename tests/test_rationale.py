@@ -2,7 +2,7 @@
 import textwrap
 from pathlib import Path
 import pytest
-from tracely360_lite.extract import extract_python
+from tracely360.extract import extract_python
 
 
 def _write_py(tmp_path: Path, code: str) -> Path:

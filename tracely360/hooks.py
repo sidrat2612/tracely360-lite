@@ -1,38 +1,38 @@
-# git hook integration - install/uninstall tracely360-lite post-commit and post-checkout hooks
+# git hook integration - install/uninstall tracely360 post-commit and post-checkout hooks
 from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
 
-_HOOK_MARKER = "# tracely360-lite-hook-start"
-_HOOK_MARKER_END = "# tracely360-lite-hook-end"
-_CHECKOUT_MARKER = "# tracely360-lite-checkout-hook-start"
-_CHECKOUT_MARKER_END = "# tracely360-lite-checkout-hook-end"
+_HOOK_MARKER = "# tracely360-hook-start"
+_HOOK_MARKER_END = "# tracely360-hook-end"
+_CHECKOUT_MARKER = "# tracely360-checkout-hook-start"
+_CHECKOUT_MARKER_END = "# tracely360-checkout-hook-end"
 
 _PYTHON_DETECT = """\
 # Detect the correct Python interpreter (handles pipx, venv, system installs)
-TRACELY360LITE_BIN=$(command -v tracely360-lite 2>/dev/null)
-if [ -n "$TRACELY360LITE_BIN" ]; then
-    _SHEBANG=$(head -1 "$TRACELY360LITE_BIN" | sed 's/^#![[:space:]]*//')
+TRACELY360_BIN=$(command -v tracely360 2>/dev/null)
+if [ -n "$TRACELY360_BIN" ]; then
+    _SHEBANG=$(head -1 "$TRACELY360_BIN" | sed 's/^#![[:space:]]*//')
     case "$_SHEBANG" in
-        */env\\ *) TRACELY360LITE_PYTHON="${_SHEBANG#*/env }" ;;
-        *)         TRACELY360LITE_PYTHON="$_SHEBANG" ;;
+        */env\\ *) TRACELY360_PYTHON="${_SHEBANG#*/env }" ;;
+        *)         TRACELY360_PYTHON="$_SHEBANG" ;;
     esac
     # Allowlist: only keep characters valid in a filesystem path to prevent
     # injection if the shebang contains shell metacharacters
-    case "$TRACELY360LITE_PYTHON" in
-        *[!a-zA-Z0-9/_.-]*) TRACELY360LITE_PYTHON="" ;;
+    case "$TRACELY360_PYTHON" in
+        *[!a-zA-Z0-9/_.-]*) TRACELY360_PYTHON="" ;;
     esac
-    if [ -n "$TRACELY360LITE_PYTHON" ] && ! "$TRACELY360LITE_PYTHON" -c "import tracely360_lite" 2>/dev/null; then
-        TRACELY360LITE_PYTHON=""
+    if [ -n "$TRACELY360_PYTHON" ] && ! "$TRACELY360_PYTHON" -c "import tracely360" 2>/dev/null; then
+        TRACELY360_PYTHON=""
     fi
 fi
 # Fall back: try python3, then python (Windows has no python3 shim)
-if [ -z "$TRACELY360LITE_PYTHON" ]; then
-    if command -v python3 >/dev/null 2>&1 && python3 -c "import tracely360_lite" 2>/dev/null; then
-        TRACELY360LITE_PYTHON="python3"
-    elif command -v python >/dev/null 2>&1 && python -c "import tracely360_lite" 2>/dev/null; then
-        TRACELY360LITE_PYTHON="python"
+if [ -z "$TRACELY360_PYTHON" ]; then
+    if command -v python3 >/dev/null 2>&1 && python3 -c "import tracely360" 2>/dev/null; then
+        TRACELY360_PYTHON="python3"
+    elif command -v python >/dev/null 2>&1 && python -c "import tracely360" 2>/dev/null; then
+        TRACELY360_PYTHON="python"
     else
         exit 0
     fi
@@ -40,9 +40,9 @@ fi
 """
 
 _HOOK_SCRIPT = """\
-# tracely360-lite-hook-start
+# tracely360-hook-start
 # Auto-rebuilds the knowledge graph after each commit (code files only, no LLM needed).
-# Installed by: tracely360-lite hook install
+# Installed by: tracely360 hook install
 
 CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
 if [ -z "$CHANGED" ]; then
@@ -51,7 +51,7 @@ fi
 
 """ + _PYTHON_DETECT + """
 export GRAPHIFY_CHANGED="$CHANGED"
-$TRACELY360LITE_PYTHON -c "
+$TRACELY360_PYTHON -c "
 import os, sys
 from pathlib import Path
 
@@ -61,23 +61,23 @@ changed = [Path(f.strip()) for f in changed_raw.strip().splitlines() if f.strip(
 if not changed:
     sys.exit(0)
 
-print(f'[tracely360-lite hook] {len(changed)} file(s) changed - rebuilding graph...')
+print(f'[tracely360 hook] {len(changed)} file(s) changed - rebuilding graph...')
 
 try:
-    from tracely360_lite.watch import _rebuild_code
+    from tracely360.watch import _rebuild_code
     _rebuild_code(Path('.'))
 except Exception as exc:
-    print(f'[tracely360-lite hook] Rebuild failed: {exc}')
+    print(f'[tracely360 hook] Rebuild failed: {exc}')
     sys.exit(1)
 "
-# tracely360-lite-hook-end
+# tracely360-hook-end
 """
 
 
 _CHECKOUT_SCRIPT = """\
-# tracely360-lite-checkout-hook-start
+# tracely360-checkout-hook-start
 # Auto-rebuilds the knowledge graph (code only) when switching branches.
-# Installed by: tracely360-lite hook install
+# Installed by: tracely360 hook install
 
 PREV_HEAD=$1
 NEW_HEAD=$2
@@ -88,24 +88,24 @@ if [ "$BRANCH_SWITCH" != "1" ]; then
     exit 0
 fi
 
-# Only run if tracely360-lite-out/ exists (graph has been built before)
-if [ ! -d "tracely360-lite-out" ]; then
+# Only run if tracely360-out/ exists (graph has been built before)
+if [ ! -d "tracely360-out" ]; then
     exit 0
 fi
 
 """ + _PYTHON_DETECT + """
-echo "[tracely360-lite] Branch switched - rebuilding knowledge graph (code files)..."
-$TRACELY360LITE_PYTHON -c "
-from tracely360_lite.watch import _rebuild_code
+echo "[tracely360] Branch switched - rebuilding knowledge graph (code files)..."
+$TRACELY360_PYTHON -c "
+from tracely360.watch import _rebuild_code
 from pathlib import Path
 import sys
 try:
     _rebuild_code(Path('.'))
 except Exception as exc:
-    print(f'[tracely360-lite] Rebuild failed: {exc}')
+    print(f'[tracely360] Rebuild failed: {exc}')
     sys.exit(1)
 "
-# tracely360-lite-checkout-hook-end
+# tracely360-checkout-hook-end
 """
 
 
@@ -155,13 +155,13 @@ def _install_hook(hooks_dir: Path, name: str, script: str, marker: str) -> str:
 
 
 def _uninstall_hook(hooks_dir: Path, name: str, marker: str, marker_end: str) -> str:
-    """Remove tracely360-lite section from a git hook using start/end markers."""
+    """Remove tracely360 section from a git hook using start/end markers."""
     hook_path = hooks_dir / name
     if not hook_path.exists():
         return f"no {name} hook found - nothing to remove."
     content = hook_path.read_text(encoding="utf-8")
     if marker not in content:
-        return f"tracely360-lite hook not found in {name} - nothing to remove."
+        return f"tracely360 hook not found in {name} - nothing to remove."
     new_content = re.sub(
         rf"{re.escape(marker)}.*?{re.escape(marker_end)}\n?",
         "",
@@ -172,11 +172,11 @@ def _uninstall_hook(hooks_dir: Path, name: str, marker: str, marker_end: str) ->
         hook_path.unlink()
         return f"removed {name} hook at {hook_path}"
     hook_path.write_text(new_content + "\n", encoding="utf-8", newline="\n")
-    return f"tracely360-lite removed from {name} at {hook_path} (other hook content preserved)"
+    return f"tracely360 removed from {name} at {hook_path} (other hook content preserved)"
 
 
 def install(path: Path = Path(".")) -> str:
-    """Install tracely360-lite post-commit and post-checkout hooks in the nearest git repo."""
+    """Install tracely360 post-commit and post-checkout hooks in the nearest git repo."""
     root = _git_root(path)
     if root is None:
         raise RuntimeError(f"No git repository found at or above {path.resolve()}")
@@ -190,7 +190,7 @@ def install(path: Path = Path(".")) -> str:
 
 
 def uninstall(path: Path = Path(".")) -> str:
-    """Remove tracely360-lite post-commit and post-checkout hooks."""
+    """Remove tracely360 post-commit and post-checkout hooks."""
     root = _git_root(path)
     if root is None:
         raise RuntimeError(f"No git repository found at or above {path.resolve()}")
@@ -203,7 +203,7 @@ def uninstall(path: Path = Path(".")) -> str:
 
 
 def status(path: Path = Path(".")) -> str:
-    """Check if tracely360-lite hooks are installed."""
+    """Check if tracely360 hooks are installed."""
     root = _git_root(path)
     if root is None:
         return "Not in a git repository."
@@ -213,7 +213,7 @@ def status(path: Path = Path(".")) -> str:
         p = hooks_dir / name
         if not p.exists():
             return "not installed"
-        return "installed" if marker in p.read_text(encoding="utf-8") else "not installed (hook exists but tracely360-lite not found)"
+        return "installed" if marker in p.read_text(encoding="utf-8") else "not installed (hook exists but tracely360 not found)"
 
     commit = _check("post-commit", _HOOK_MARKER)
     checkout = _check("post-checkout", _CHECKOUT_MARKER)

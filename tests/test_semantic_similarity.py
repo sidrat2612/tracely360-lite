@@ -1,9 +1,9 @@
 """Tests for semantically_similar_to edge support."""
 import networkx as nx
 import pytest
-from tracely360_lite.build import build_from_json
-from tracely360_lite.analyze import surprising_connections, _surprise_score
-from tracely360_lite.report import generate
+from tracely360.build import build_from_json
+from tracely360.analyze import surprising_connections, _surprise_score
+from tracely360.report import generate
 
 
 # ---------------------------------------------------------------------------

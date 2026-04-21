@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 import pytest
-from tracely360_lite.extract import extract_js, extract_go, extract_rust, extract
+from tracely360.extract import extract_js, extract_go, extract_rust, extract
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

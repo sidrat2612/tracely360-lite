@@ -1,4 +1,4 @@
-"""Tests for hyperedge support in tracely360-lite."""
+"""Tests for hyperedge support in tracely360."""
 from __future__ import annotations
 import json
 import tempfile
@@ -7,9 +7,9 @@ from pathlib import Path
 import networkx as nx
 import pytest
 
-from tracely360_lite.build import build_from_json
-from tracely360_lite.export import attach_hyperedges, to_json
-from tracely360_lite.report import generate
+from tracely360.build import build_from_json
+from tracely360.export import attach_hyperedges, to_json
+from tracely360.report import generate
 
 
 # ---------------------------------------------------------------------------

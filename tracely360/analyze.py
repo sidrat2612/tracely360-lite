@@ -109,7 +109,7 @@ def _is_concept_node(G: nx.Graph, node_id: str) -> bool:
     return False
 
 
-from tracely360_lite.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS
+from tracely360.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS
 
 
 def _file_category(path: str) -> str:

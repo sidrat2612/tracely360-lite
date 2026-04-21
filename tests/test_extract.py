@@ -1,5 +1,5 @@
 from pathlib import Path
-from tracely360_lite.extract import extract_python, extract, collect_files, _make_id
+from tracely360.extract import extract_python, extract, collect_files, _make_id
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

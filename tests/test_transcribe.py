@@ -1,4 +1,4 @@
-"""Tests for tracely360-lite.transcribe — video/audio transcription support."""
+"""Tests for tracely360.transcribe — video/audio transcription support."""
 from __future__ import annotations
 
 import os
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tracely360_lite.transcribe import (
+from tracely360.transcribe import (
     VIDEO_EXTENSIONS,
     build_whisper_prompt,
     transcribe,
@@ -38,15 +38,15 @@ def test_build_whisper_prompt_no_nodes():
 
 
 def test_build_whisper_prompt_env_override(monkeypatch):
-    """TRACELY360LITE_WHISPER_PROMPT env var short-circuits prompt generation."""
-    monkeypatch.setenv("TRACELY360LITE_WHISPER_PROMPT", "Custom domain hint.")
+    """TRACELY360_WHISPER_PROMPT env var short-circuits prompt generation."""
+    monkeypatch.setenv("TRACELY360_WHISPER_PROMPT", "Custom domain hint.")
     prompt = build_whisper_prompt([{"label": "Python"}, {"label": "FastAPI"}])
     assert prompt == "Custom domain hint."
 
 
 def test_build_whisper_prompt_legacy_env_override(monkeypatch):
     """Legacy GRAPHIFY_WHISPER_PROMPT env var remains supported."""
-    monkeypatch.delenv("TRACELY360LITE_WHISPER_PROMPT", raising=False)
+    monkeypatch.delenv("TRACELY360_WHISPER_PROMPT", raising=False)
     monkeypatch.setenv("GRAPHIFY_WHISPER_PROMPT", "Legacy domain hint.")
     prompt = build_whisper_prompt([{"label": "Python"}, {"label": "FastAPI"}])
     assert prompt == "Legacy domain hint."
@@ -56,7 +56,7 @@ def test_build_whisper_prompt_returns_topic_string():
     """Returns a topic-based prompt from god node labels — no LLM call."""
     god_nodes = [{"label": "neural networks"}, {"label": "transformers"}, {"label": "attention"}]
     with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("TRACELY360LITE_WHISPER_PROMPT", None)
+        os.environ.pop("TRACELY360_WHISPER_PROMPT", None)
         os.environ.pop("GRAPHIFY_WHISPER_PROMPT", None)
         prompt = build_whisper_prompt(god_nodes)
     assert "neural networks" in prompt.lower() or "transformers" in prompt.lower()
@@ -103,7 +103,7 @@ def test_transcribe_force_reruns(tmp_path):
     fake_model = MagicMock()
     fake_model.transcribe.return_value = ([fake_segment], fake_info)
 
-    with patch("tracely360_lite.transcribe._get_whisper", return_value=lambda *a, **kw: fake_model):
+    with patch("tracely360.transcribe._get_whisper", return_value=lambda *a, **kw: fake_model):
         result = transcribe(video, output_dir=out_dir, force=True)
 
     assert result.read_text() == "New transcript segment."
@@ -114,7 +114,7 @@ def test_transcribe_missing_faster_whisper(tmp_path):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"fake")
 
-    with patch("tracely360_lite.transcribe._get_whisper", side_effect=ImportError("faster-whisper not installed")):
+    with patch("tracely360.transcribe._get_whisper", side_effect=ImportError("faster-whisper not installed")):
         with pytest.raises(ImportError):
             transcribe(video, output_dir=tmp_path / "out")
 
@@ -150,7 +150,7 @@ def test_transcribe_all_skips_failed(tmp_path):
     def raise_import(*args, **kwargs):
         raise ImportError("faster_whisper not installed")
 
-    with patch("tracely360_lite.transcribe.transcribe", side_effect=RuntimeError("boom")):
+    with patch("tracely360.transcribe.transcribe", side_effect=RuntimeError("boom")):
         results = transcribe_all([str(video)], output_dir=tmp_path / "out")
 
     assert results == []

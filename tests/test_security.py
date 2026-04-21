@@ -1,4 +1,4 @@
-"""Tests for tracely360-lite/security.py - URL validation, safe fetch, path guards, label sanitisation."""
+"""Tests for tracely360/security.py - URL validation, safe fetch, path guards, label sanitisation."""
 from __future__ import annotations
 
 import json
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tracely360_lite.security import (
+from tracely360.security import (
     sanitize_label,
     safe_fetch,
     safe_fetch_text,
@@ -71,7 +71,7 @@ def test_safe_fetch_rejects_ftp_url():
 
 def test_safe_fetch_returns_bytes(tmp_path):
     mock_resp = _make_mock_response(b"hello world")
-    with patch("tracely360_lite.security._build_opener") as mock_opener_fn:
+    with patch("tracely360.security._build_opener") as mock_opener_fn:
         mock_opener = MagicMock()
         mock_opener.open.return_value = mock_resp
         mock_opener_fn.return_value = mock_opener
@@ -80,7 +80,7 @@ def test_safe_fetch_returns_bytes(tmp_path):
 
 def test_safe_fetch_raises_on_non_2xx():
     mock_resp = _make_mock_response(b"Not Found", status=404)
-    with patch("tracely360_lite.security._build_opener") as mock_opener_fn:
+    with patch("tracely360.security._build_opener") as mock_opener_fn:
         mock_opener = MagicMock()
         mock_opener.open.return_value = mock_resp
         mock_opener_fn.return_value = mock_opener
@@ -98,7 +98,7 @@ def test_safe_fetch_raises_on_size_exceeded():
     # Return the chunk twice so total > max_bytes=65536
     mock_resp.read.side_effect = [big_chunk, big_chunk, b""]
 
-    with patch("tracely360_lite.security._build_opener") as mock_opener_fn:
+    with patch("tracely360.security._build_opener") as mock_opener_fn:
         mock_opener = MagicMock()
         mock_opener.open.return_value = mock_resp
         mock_opener_fn.return_value = mock_opener
@@ -113,7 +113,7 @@ def test_safe_fetch_raises_on_size_exceeded():
 def test_safe_fetch_text_decodes_utf8():
     content = "héllo wörld".encode("utf-8")
     mock_resp = _make_mock_response(content)
-    with patch("tracely360_lite.security._build_opener") as mock_opener_fn:
+    with patch("tracely360.security._build_opener") as mock_opener_fn:
         mock_opener = MagicMock()
         mock_opener.open.return_value = mock_resp
         mock_opener_fn.return_value = mock_opener
@@ -123,7 +123,7 @@ def test_safe_fetch_text_decodes_utf8():
 def test_safe_fetch_text_replaces_bad_bytes():
     bad = b"hello \xff world"
     mock_resp = _make_mock_response(bad)
-    with patch("tracely360_lite.security._build_opener") as mock_opener_fn:
+    with patch("tracely360.security._build_opener") as mock_opener_fn:
         mock_opener = MagicMock()
         mock_opener.open.return_value = mock_resp
         mock_opener_fn.return_value = mock_opener
@@ -138,7 +138,7 @@ def test_safe_fetch_text_replaces_bad_bytes():
 # ---------------------------------------------------------------------------
 
 def test_validate_graph_path_allows_inside_base(tmp_path):
-    base = tmp_path / "tracely360-lite-out"
+    base = tmp_path / "tracely360-out"
     base.mkdir()
     graph = base / "graph.json"
     graph.write_text("{}")
@@ -146,19 +146,19 @@ def test_validate_graph_path_allows_inside_base(tmp_path):
     assert result == graph.resolve()
 
 def test_validate_graph_path_blocks_traversal(tmp_path):
-    base = tmp_path / "tracely360-lite-out"
+    base = tmp_path / "tracely360-out"
     base.mkdir()
-    evil = tmp_path / "tracely360-lite-out" / ".." / "etc_passwd"
+    evil = tmp_path / "tracely360-out" / ".." / "etc_passwd"
     with pytest.raises(ValueError, match="escapes"):
         validate_graph_path(str(evil), base=base)
 
 def test_validate_graph_path_requires_base_exists(tmp_path):
-    base = tmp_path / "tracely360-lite-out"  # not created
+    base = tmp_path / "tracely360-out"  # not created
     with pytest.raises(ValueError, match="does not exist"):
         validate_graph_path(str(base / "graph.json"), base=base)
 
 def test_validate_graph_path_raises_if_file_missing(tmp_path):
-    base = tmp_path / "tracely360-lite-out"
+    base = tmp_path / "tracely360-out"
     base.mkdir()
     with pytest.raises(FileNotFoundError):
         validate_graph_path(str(base / "missing.json"), base=base)

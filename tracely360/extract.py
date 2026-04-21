@@ -1228,7 +1228,7 @@ def _extract_generic(path: Path, config: LanguageConfig) -> dict:
         })
 
     # ── Endpoint extraction pass ──────────────────────────────────────────────
-    from tracely360_lite.endpoints import extract_endpoints as _extract_eps
+    from tracely360.endpoints import extract_endpoints as _extract_eps
     ep_nodes, ep_edges = _extract_eps(root, source, path)
     for ep in ep_nodes:
         if ep["id"] not in seen_ids:
@@ -2025,7 +2025,7 @@ def extract_go(path: Path) -> dict:
         walk_calls(body_node, caller_nid)
 
     # ── Endpoint extraction pass (Go) ─────────────────────────────────────────
-    from tracely360_lite.endpoints import extract_endpoints as _extract_eps
+    from tracely360.endpoints import extract_endpoints as _extract_eps
     ep_nodes, ep_edges = _extract_eps(root, source, path)
     for ep in ep_nodes:
         if ep["id"] not in seen_ids:
@@ -3081,7 +3081,7 @@ def _check_tree_sitter_version() -> None:
         import tree_sitter as _ts
         raise RuntimeError(
             f"tree-sitter {getattr(_ts, '__version__', 'unknown')} is too old. "
-            f"tracely360-lite requires tree-sitter >= 0.23.0 (Language API v2). "
+            f"tracely360 requires tree-sitter >= 0.23.0 (Language API v2). "
             f"Run: pip install --upgrade tree-sitter"
         )
 
@@ -3096,9 +3096,9 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
 
     Args:
         paths: files to extract from
-        cache_root: explicit root for tracely360-lite-out/cache/ (overrides the
+        cache_root: explicit root for tracely360-out/cache/ (overrides the
             inferred common path prefix). Pass Path('.') when running on a
-            subdirectory so the cache stays at ./tracely360-lite-out/cache/.
+            subdirectory so the cache stays at ./tracely360-out/cache/.
     """
     _check_tree_sitter_version()
     per_file: list[dict] = []
@@ -3246,9 +3246,9 @@ def collect_files(target: Path, *, follow_symlinks: bool = False, root: Path | N
         ".lua", ".toc", ".zig", ".ps1",
         ".m", ".mm",
     }
-    from tracely360_lite.detect import _load_tracely360liteignore, _is_ignored
+    from tracely360.detect import _load_tracely360ignore, _is_ignored
     ignore_root = root if root is not None else target
-    patterns = _load_tracely360liteignore(ignore_root)
+    patterns = _load_tracely360ignore(ignore_root)
 
     def _ignored(p: Path) -> bool:
         return bool(patterns and _is_ignored(p, ignore_root, patterns))
@@ -3284,7 +3284,7 @@ def collect_files(target: Path, *, follow_symlinks: bool = False, root: Path | N
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m tracely360_lite.extract <file_or_dir> ...", file=sys.stderr)
+        print("Usage: python -m tracely360.extract <file_or_dir> ...", file=sys.stderr)
         sys.exit(1)
 
     paths: list[Path] = []

@@ -10,11 +10,11 @@ VIDEO_EXTENSIONS = {'.mp4', '.mov', '.webm', '.mkv', '.avi', '.m4v', '.mp3', '.w
 URL_PREFIXES = ('http://', 'https://', 'www.')
 
 _DEFAULT_MODEL = "base"
-_TRANSCRIPTS_DIR = "tracely360-lite-out/transcripts"
+_TRANSCRIPTS_DIR = "tracely360-out/transcripts"
 _FALLBACK_PROMPT = "Use proper punctuation and paragraph breaks."
-_PROMPT_ENV = "TRACELY360LITE_WHISPER_PROMPT"
+_PROMPT_ENV = "TRACELY360_WHISPER_PROMPT"
 _PROMPT_ENV_LEGACY = "GRAPHIFY_WHISPER_PROMPT"
-_MODEL_ENV = "TRACELY360LITE_WHISPER_MODEL"
+_MODEL_ENV = "TRACELY360_WHISPER_MODEL"
 _MODEL_ENV_LEGACY = "GRAPHIFY_WHISPER_MODEL"
 
 
@@ -37,7 +37,7 @@ def _get_whisper():
     except ImportError as exc:
         raise ImportError(
             "Video transcription requires faster-whisper. "
-            "Run: pip install 'tracely360-lite[video]'"
+            "Run: pip install 'tracely360[video]'"
         ) from exc
 
 
@@ -48,7 +48,7 @@ def _get_yt_dlp():
     except ImportError as exc:
         raise ImportError(
             "YouTube/URL download requires yt-dlp. "
-            "Run: pip install 'tracely360-lite[video]'"
+            "Run: pip install 'tracely360[video]'"
         ) from exc
 
 
@@ -105,7 +105,7 @@ def build_whisper_prompt(god_nodes: list[dict]) -> str:
 
     Formats the top god node labels into a topic string for Whisper.
     The coding agent (Claude Code, Codex, etc.) generates the actual one-sentence
-    domain hint from these labels and passes it via TRACELY360LITE_WHISPER_PROMPT
+    domain hint from these labels and passes it via TRACELY360_WHISPER_PROMPT
     (legacy GRAPHIFY_WHISPER_PROMPT also accepted) or
     as initial_prompt — no separate API call needed here.
     """

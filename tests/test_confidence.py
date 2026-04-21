@@ -5,11 +5,11 @@ from pathlib import Path
 
 import networkx as nx
 
-from tracely360_lite.build import build_from_json
-from tracely360_lite.cluster import cluster, score_all
-from tracely360_lite.analyze import god_nodes, surprising_connections
-from tracely360_lite.export import to_json
-from tracely360_lite.report import generate
+from tracely360.build import build_from_json
+from tracely360.cluster import cluster, score_all
+from tracely360.analyze import god_nodes, surprising_connections
+from tracely360.export import to_json
+from tracely360.report import generate
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

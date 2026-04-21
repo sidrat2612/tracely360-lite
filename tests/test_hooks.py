@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 import pytest
-from tracely360_lite.hooks import install, uninstall, status, _HOOK_MARKER, _CHECKOUT_MARKER
+from tracely360.hooks import install, uninstall, status, _HOOK_MARKER, _CHECKOUT_MARKER
 
 
 def _make_git_repo(tmp_path: Path) -> Path:

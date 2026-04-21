@@ -2,8 +2,8 @@ import json
 import sys
 import networkx as nx
 from pathlib import Path
-from tracely360_lite.build import build_from_json
-from tracely360_lite.cluster import cluster, cohesion_score, score_all
+from tracely360.build import build_from_json
+from tracely360.cluster import cluster, cohesion_score, score_all
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -71,6 +71,6 @@ def test_cluster_does_not_write_to_stderr(capsys):
     G = make_graph()
     cluster(G)
     captured = capsys.readouterr()
-    # Allow logging output (starts with [tracely360-lite]) but no raw ANSI codes
+    # Allow logging output (starts with [tracely360]) but no raw ANSI codes
     for line in captured.err.splitlines():
         assert "\x1b" not in line, f"cluster() wrote ANSI to stderr: {line!r}"

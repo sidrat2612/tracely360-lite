@@ -1,7 +1,7 @@
-# tracely360-lite
+# tracely360
 
 
-Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph. Type `/tracely360-lite` in your AI coding assistant — it reads your files, builds a graph, and gives you back structure you didn't know was there. Understand a codebase faster. Find the "why" behind architectural decisions.
+Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph. Type `/tracely360` in your AI coding assistant — it reads your files, builds a graph, and gives you back structure you didn't know was there. Understand a codebase faster. Find the "why" behind architectural decisions.
 
 71.5× fewer tokens per query vs reading the raw files, persistent across sessions, honest about what it found vs guessed.
 
@@ -19,40 +19,40 @@ Turn any folder of code, docs, papers, images, or videos into a queryable knowle
 ## Install
 
 ```bash
-pip install tracely360-lite
-tracely360-lite install
+pip install tracely360
+tracely360 install
 ```
 
 Optional extras:
 
 ```bash
-pip install "tracely360-lite[mcp]"      # MCP stdio server
-pip install "tracely360-lite[neo4j]"    # Neo4j push
-pip install "tracely360-lite[pdf]"      # PDF extraction
-pip install "tracely360-lite[video]"    # Video/audio transcription
-pip install "tracely360-lite[watch]"    # File watcher
-pip install "tracely360-lite[svg]"      # Static SVG export
-pip install "tracely360-lite[leiden]"   # Leiden clustering (Python <3.13)
-pip install "tracely360-lite[office]"   # Word/Excel conversion
-pip install "tracely360-lite[all]"      # Everything
+pip install "tracely360[mcp]"      # MCP stdio server
+pip install "tracely360[neo4j]"    # Neo4j push
+pip install "tracely360[pdf]"      # PDF extraction
+pip install "tracely360[video]"    # Video/audio transcription
+pip install "tracely360[watch]"    # File watcher
+pip install "tracely360[svg]"      # Static SVG export
+pip install "tracely360[leiden]"   # Leiden clustering (Python <3.13)
+pip install "tracely360[office]"   # Word/Excel conversion
+pip install "tracely360[all]"      # Everything
 ```
 
 ## Quick start
 
 ### Skill mode (recommended)
 
-Type `/tracely360-lite .` in Claude Code, Codex, OpenCode, Cursor, Gemini CLI, GitHub Copilot CLI, VS Code Copilot Chat, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, or Google Antigravity.
+Type `/tracely360 .` in Claude Code, Codex, OpenCode, Cursor, Gemini CLI, GitHub Copilot CLI, VS Code Copilot Chat, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, or Google Antigravity.
 
 ### CLI mode
 
 ```bash
-tracely360-lite --analyze /path/to/repo --output ./tracely360-lite-out
+tracely360 --analyze /path/to/repo --output ./tracely360-out
 ```
 
 ### Watch mode
 
 ```bash
-tracely360-lite watch
+tracely360 watch
 ```
 
 Auto-rebuilds the AST graph on file changes. No LLM required.
@@ -60,14 +60,14 @@ Auto-rebuilds the AST graph on file changes. No LLM required.
 ### MCP server
 
 ```bash
-python -m tracely360_lite.serve
+python -m tracely360.serve
 ```
 
 Exposes the graph over stdio. Tools: `query_graph`, `get_node`, `get_neighbors`, `get_community`, `god_nodes`, `graph_stats`, `shortest_path`.
 
 ## Outputs
 
-All results land in `tracely360-lite-out/`:
+All results land in `tracely360-out/`:
 
 | File | Description |
 |------|-------------|
@@ -81,26 +81,26 @@ All results land in `tracely360-lite-out/`:
 
 | Platform | Install command |
 |----------|----------------|
-| Claude Code | `tracely360-lite claude install` |
-| Codex | `tracely360-lite codex install` |
-| OpenCode | `tracely360-lite opencode install` |
-| Aider | `tracely360-lite aider install` |
-| Cursor | `tracely360-lite cursor install` |
-| VS Code Copilot Chat | `tracely360-lite vscode install` |
-| GitHub Copilot CLI | `tracely360-lite install --platform copilot` |
-| OpenClaw | `tracely360-lite claw install` |
-| Factory Droid | `tracely360-lite droid install` |
-| Trae | `tracely360-lite trae install` |
-| Gemini CLI | `tracely360-lite gemini install` |
-| Hermes | `tracely360-lite hermes install` |
-| Kiro | `tracely360-lite kiro install` |
-| Google Antigravity | `tracely360-lite antigravity install` |
+| Claude Code | `tracely360 claude install` |
+| Codex | `tracely360 codex install` |
+| OpenCode | `tracely360 opencode install` |
+| Aider | `tracely360 aider install` |
+| Cursor | `tracely360 cursor install` |
+| VS Code Copilot Chat | `tracely360 vscode install` |
+| GitHub Copilot CLI | `tracely360 install --platform copilot` |
+| OpenClaw | `tracely360 claw install` |
+| Factory Droid | `tracely360 droid install` |
+| Trae | `tracely360 trae install` |
+| Gemini CLI | `tracely360 gemini install` |
+| Hermes | `tracely360 hermes install` |
+| Kiro | `tracely360 kiro install` |
+| Google Antigravity | `tracely360 antigravity install` |
 
 ## Git hooks
 
 ```bash
-tracely360-lite hook install    # post-commit + post-checkout
-tracely360-lite hook uninstall
+tracely360 hook install    # post-commit + post-checkout
+tracely360 hook uninstall
 ```
 
 Rebuilds the AST-only graph after every commit. Works with Husky and custom `core.hooksPath`.
@@ -123,8 +123,8 @@ Detected routes appear as `endpoint` nodes in the graph and in the API Endpoints
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `TRACELY360LITE_WHISPER_PROMPT` | *(derived from corpus)* | Override faster-whisper prompt |
-| `TRACELY360LITE_WHISPER_MODEL` | `base` | Whisper model name |
+| `TRACELY360_WHISPER_PROMPT` | *(derived from corpus)* | Override faster-whisper prompt |
+| `TRACELY360_WHISPER_MODEL` | `base` | Whisper model name |
 
 Legacy names `GRAPHIFY_WHISPER_PROMPT` and `GRAPHIFY_WHISPER_MODEL` are still supported.
 
@@ -156,12 +156,12 @@ Every edge carries a confidence level:
 
 ## Team workflow
 
-Commit `tracely360-lite-out/` to git. The graph, report, and wiki are plain text and diff cleanly. Use `.tracely360liteignore` (same syntax as `.gitignore`) to exclude files from extraction.
+Commit `tracely360-out/` to git. The graph, report, and wiki are plain text and diff cleanly. Use `.tracely360ignore` (same syntax as `.gitignore`) to exclude files from extraction.
 
 Recommended `.gitignore` additions:
 
 ```gitignore
-tracely360-lite-out/cache/
+tracely360-out/cache/
 ```
 
 ## License

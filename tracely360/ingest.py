@@ -7,7 +7,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
-from tracely360_lite.security import safe_fetch, safe_fetch_text, validate_url
+from tracely360.security import safe_fetch, safe_fetch_text, validate_url
 
 
 def _yaml_str(s: str) -> str:
@@ -183,7 +183,7 @@ def _download_binary(url: str, suffix: str, target_dir: Path) -> Path:
 
 def ingest(url: str, target_dir: Path, author: str | None = None, contributor: str | None = None) -> Path:
     """
-    Fetch a URL and save it into target_dir as a tracely360-lite-ready file.
+    Fetch a URL and save it into target_dir as a tracely360-ready file.
 
     Returns the path of the saved file.
     """
@@ -208,7 +208,7 @@ def ingest(url: str, target_dir: Path, author: str | None = None, contributor: s
             return out
 
         if url_type == "youtube":
-            from tracely360_lite.transcribe import download_audio
+            from tracely360.transcribe import download_audio
             out = download_audio(url, target_dir)
             print(f"Downloaded audio: {out.name}")
             return out
@@ -244,8 +244,8 @@ def save_query_result(
 ) -> Path:
     """Save a Q&A result as markdown so it gets extracted into the graph on next --update.
 
-    Files are stored in memory_dir (typically tracely360-lite-out/memory/) with YAML frontmatter
-    that tracely360-lite's extractor reads as node metadata. This closes the feedback loop:
+    Files are stored in memory_dir (typically tracely360-out/memory/) with YAML frontmatter
+    that tracely360's extractor reads as node metadata. This closes the feedback loop:
     the system grows smarter from both what you add AND what you ask.
     """
     memory_dir = Path(memory_dir)
@@ -260,7 +260,7 @@ def save_query_result(
         f'type: "{query_type}"',
         f'date: "{now.isoformat()}"',
         f'question: "{_yaml_str(question)}"',
-        'contributor: "tracely360-lite"',
+        'contributor: "tracely360"',
     ]
     if source_nodes:
         nodes_str = ", ".join(f'"{n}"' for n in source_nodes[:10])
@@ -287,11 +287,11 @@ def save_query_result(
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Fetch a URL into a tracely360-lite /raw folder")
+    parser = argparse.ArgumentParser(description="Fetch a URL into a tracely360 /raw folder")
     parser.add_argument("url", help="URL to fetch")
     parser.add_argument("target_dir", nargs="?", default="./raw", help="Target directory (default: ./raw)")
     parser.add_argument("--author", help="Your name (stored as node metadata)")
     parser.add_argument("--contributor", help="Contributor name for team graphs")
     args = parser.parse_args()
     out = ingest(args.url, Path(args.target_dir), author=args.author, contributor=args.contributor)
-    print(f"Ready for tracely360-lite: {out}")
+    print(f"Ready for tracely360: {out}")

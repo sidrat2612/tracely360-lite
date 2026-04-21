@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 
-from tracely360_lite.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS
+from tracely360.detect import CODE_EXTENSIONS, DOC_EXTENSIONS, PAPER_EXTENSIONS, IMAGE_EXTENSIONS
 
 _WATCHED_EXTENSIONS = CODE_EXTENSIONS | DOC_EXTENSIONS | PAPER_EXTENSIONS | IMAGE_EXTENSIONS
 _CODE_EXTENSIONS = CODE_EXTENSIONS
@@ -19,26 +19,26 @@ def _rebuild_code(watch_path: Path, *, follow_symlinks: bool = False) -> bool:
     """
     watch_path = watch_path.resolve()
     try:
-        from tracely360_lite.extract import extract
-        from tracely360_lite.detect import detect
-        from tracely360_lite.build import build_from_json
-        from tracely360_lite.cluster import cluster, score_all
-        from tracely360_lite.analyze import god_nodes, surprising_connections, suggest_questions
-        from tracely360_lite.report import generate
-        from tracely360_lite.export import to_json, to_html
+        from tracely360.extract import extract
+        from tracely360.detect import detect
+        from tracely360.build import build_from_json
+        from tracely360.cluster import cluster, score_all
+        from tracely360.analyze import god_nodes, surprising_connections, suggest_questions
+        from tracely360.report import generate
+        from tracely360.export import to_json, to_html
 
         detected = detect(watch_path, follow_symlinks=follow_symlinks)
         code_files = [Path(f) for f in detected['files']['code']]
 
         if not code_files:
-            print("[tracely360-lite watch] No code files found - nothing to rebuild.")
+            print("[tracely360 watch] No code files found - nothing to rebuild.")
             return False
 
         result = extract(code_files, cache_root=watch_path)
 
         # Preserve semantic nodes/edges from a previous full run.
         # AST-only rebuild replaces code nodes; doc/paper/image nodes are kept.
-        out = watch_path / "tracely360-lite-out"
+        out = watch_path / "tracely360-out"
         existing_graph = out / "graph.json"
         if existing_graph.exists():
             try:
@@ -86,7 +86,7 @@ def _rebuild_code(watch_path: Path, *, follow_symlinks: bool = False) -> bool:
             to_html(G, communities, str(out / "graph.html"), community_labels=labels or None)
             html_written = True
         except ValueError as viz_err:
-            print(f"[tracely360-lite watch] Skipped graph.html: {viz_err}")
+            print(f"[tracely360 watch] Skipped graph.html: {viz_err}")
             stale = out / "graph.html"
             if stale.exists():
                 stale.unlink()
@@ -96,26 +96,26 @@ def _rebuild_code(watch_path: Path, *, follow_symlinks: bool = False) -> bool:
         if flag.exists():
             flag.unlink()
 
-        print(f"[tracely360-lite watch] Rebuilt: {G.number_of_nodes()} nodes, "
+        print(f"[tracely360 watch] Rebuilt: {G.number_of_nodes()} nodes, "
               f"{G.number_of_edges()} edges, {len(communities)} communities")
         products = "graph.json" + (", graph.html" if html_written else "") + " and GRAPH_REPORT.md"
-        print(f"[tracely360-lite watch] {products} updated in {out}")
+        print(f"[tracely360 watch] {products} updated in {out}")
         return True
 
     except Exception as exc:
-        print(f"[tracely360-lite watch] Rebuild failed: {exc}")
+        print(f"[tracely360 watch] Rebuild failed: {exc}")
         return False
 
 
 def _notify_only(watch_path: Path) -> None:
     """Write a flag file and print a notification (fallback for non-code-only corpora)."""
-    flag = watch_path / "tracely360-lite-out" / "needs_update"
+    flag = watch_path / "tracely360-out" / "needs_update"
     flag.parent.mkdir(parents=True, exist_ok=True)
     flag.write_text("1", encoding="utf-8")
-    print(f"\n[tracely360-lite watch] New or changed files detected in {watch_path}")
-    print("[tracely360-lite watch] Non-code files changed - semantic re-extraction requires LLM.")
-    print("[tracely360-lite watch] Run `/tracely360-lite --update` in Claude Code to update the graph.")
-    print(f"[tracely360-lite watch] Flag written to {flag}")
+    print(f"\n[tracely360 watch] New or changed files detected in {watch_path}")
+    print("[tracely360 watch] Non-code files changed - semantic re-extraction requires LLM.")
+    print("[tracely360 watch] Run `/tracely360 --update` in Claude Code to update the graph.")
+    print(f"[tracely360 watch] Flag written to {flag}")
 
 
 def _has_non_code(changed_paths: list[Path]) -> bool:
@@ -128,7 +128,7 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
 
     For code-only changes: re-runs AST extraction + rebuild immediately (no LLM).
     For doc/paper/image changes: writes a needs_update flag and notifies the user
-    to run /tracely360-lite --update (LLM extraction required).
+    to run /tracely360 --update (LLM extraction required).
 
     debounce: seconds to wait after the last change before triggering (avoids
     running on every keystroke when many files are saved at once).
@@ -154,7 +154,7 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
                 return
             if any(part.startswith(".") for part in path.parts):
                 return
-            if "tracely360-lite-out" in path.parts:
+            if "tracely360-out" in path.parts:
                 return
             last_trigger = time.monotonic()
             pending = True
@@ -166,10 +166,10 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
     observer.schedule(handler, str(watch_path), recursive=True)
     observer.start()
 
-    print(f"[tracely360-lite watch] Watching {watch_path.resolve()} - press Ctrl+C to stop")
-    print(f"[tracely360-lite watch] Code changes rebuild graph automatically. "
-          f"Doc/image changes require /tracely360-lite --update.")
-    print(f"[tracely360-lite watch] Debounce: {debounce}s")
+    print(f"[tracely360 watch] Watching {watch_path.resolve()} - press Ctrl+C to stop")
+    print(f"[tracely360 watch] Code changes rebuild graph automatically. "
+          f"Doc/image changes require /tracely360 --update.")
+    print(f"[tracely360 watch] Debounce: {debounce}s")
 
     try:
         while True:
@@ -178,13 +178,13 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
                 pending = False
                 batch = list(changed)
                 changed.clear()
-                print(f"\n[tracely360-lite watch] {len(batch)} file(s) changed")
+                print(f"\n[tracely360 watch] {len(batch)} file(s) changed")
                 if _has_non_code(batch):
                     _notify_only(watch_path)
                 else:
                     _rebuild_code(watch_path)
     except KeyboardInterrupt:
-        print("\n[tracely360-lite watch] Stopped.")
+        print("\n[tracely360 watch] Stopped.")
     finally:
         observer.stop()
         observer.join()
@@ -192,7 +192,7 @@ def watch(watch_path: Path, debounce: float = 3.0) -> None:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Watch a folder and auto-update the tracely360-lite graph")
+    parser = argparse.ArgumentParser(description="Watch a folder and auto-update the tracely360 graph")
     parser.add_argument("path", nargs="?", default=".", help="Folder to watch (default: .)")
     parser.add_argument("--debounce", type=float, default=3.0,
                         help="Seconds to wait after last change before updating (default: 3)")

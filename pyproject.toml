@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tracely360-lite"
+name = "tracely360"
 version = "0.4.23"
 description = "AI coding assistant skill (Claude Code, Codex, OpenCode, Cursor, Gemini CLI, Aider, OpenClaw, Factory Droid, Trae, Hermes, Kiro, Google Antigravity) - turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph"
 readme = "README.md"
@@ -37,9 +37,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sidrat2612/tracely360-lite"
-Repository = "https://github.com/sidrat2612/tracely360-lite"
-Issues = "https://github.com/sidrat2612/tracely360-lite/issues"
+Homepage = "https://github.com/sidrat2612/tracely360"
+Repository = "https://github.com/sidrat2612/tracely360"
+Issues = "https://github.com/sidrat2612/tracely360/issues"
 
 [project.optional-dependencies]
 mcp = ["mcp"]
@@ -53,14 +53,14 @@ video = ["faster-whisper", "yt-dlp"]
 all = ["mcp", "neo4j", "pypdf", "html2text", "watchdog", "graspologic; python_version < '3.13'", "python-docx", "openpyxl", "faster-whisper", "yt-dlp", "matplotlib"]
 
 [project.scripts]
-tracely360-lite = "tracely360_lite.__main__:main"
+tracely360 = "tracely360.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tracely360_lite*"]
+include = ["tracely360*"]
 
 [tool.setuptools.package-data]
-tracely360_lite = ["skill.md", "skill-codex.md", "skill-opencode.md", "skill-aider.md", "skill-copilot.md", "skill-claw.md", "skill-windows.md", "skill-droid.md", "skill-trae.md", "skill-kiro.md", "skill-vscode.md"]
+tracely360 = ["skill.md", "skill-codex.md", "skill-opencode.md", "skill-aider.md", "skill-copilot.md", "skill-claw.md", "skill-windows.md", "skill-droid.md", "skill-trae.md", "skill-kiro.md", "skill-vscode.md"]
 
 [tool.pytest.ini_options]
 markers = [

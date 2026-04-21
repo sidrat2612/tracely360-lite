@@ -1,5 +1,5 @@
 from pathlib import Path
-from tracely360_lite.detect import classify_file, count_words, detect, FileType, _looks_like_paper, _is_ignored, _load_tracely360liteignore
+from tracely360.detect import classify_file, count_words, detect, FileType, _looks_like_paper, _is_ignored, _load_tracely360ignore
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -74,15 +74,15 @@ def test_classify_md_doc_without_signals(tmp_path):
 
 def test_classify_attention_paper():
     """The real attention paper file should be classified as PAPER."""
-    paper_path = Path("/tmp/tracely360_lite_eval/papers/attention_is_all_you_need.md")
+    paper_path = Path("/tmp/tracely360_eval/papers/attention_is_all_you_need.md")
     if paper_path.exists():
         result = classify_file(paper_path)
         assert result == FileType.PAPER
 
 
-def test_tracely360liteignore_excludes_file(tmp_path):
-    """Files matching .tracely360liteignore patterns are excluded from detect()."""
-    (tmp_path / ".tracely360liteignore").write_text("vendor/\n*.generated.py\n")
+def test_tracely360ignore_excludes_file(tmp_path):
+    """Files matching .tracely360ignore patterns are excluded from detect()."""
+    (tmp_path / ".tracely360ignore").write_text("vendor/\n*.generated.py\n")
     vendor = tmp_path / "vendor"
     vendor.mkdir()
     (vendor / "lib.py").write_text("x = 1")
@@ -94,19 +94,19 @@ def test_tracely360liteignore_excludes_file(tmp_path):
     assert any("main.py" in f for f in file_list)
     assert not any("vendor" in f for f in file_list)
     assert not any("generated" in f for f in file_list)
-    assert result["tracely360liteignore_patterns"] == 2
+    assert result["tracely360ignore_patterns"] == 2
 
 
-def test_tracely360liteignore_missing_is_fine(tmp_path):
-    """No .tracely360liteignore is not an error."""
+def test_tracely360ignore_missing_is_fine(tmp_path):
+    """No .tracely360ignore is not an error."""
     (tmp_path / "main.py").write_text("x = 1")
     result = detect(tmp_path)
-    assert result["tracely360liteignore_patterns"] == 0
+    assert result["tracely360ignore_patterns"] == 0
 
 
-def test_tracely360liteignore_comments_ignored(tmp_path):
-    """Comment lines in .tracely360liteignore are not treated as patterns."""
-    (tmp_path / ".tracely360liteignore").write_text("# this is a comment\n\nmain.py\n")
+def test_tracely360ignore_comments_ignored(tmp_path):
+    """Comment lines in .tracely360ignore are not treated as patterns."""
+    (tmp_path / ".tracely360ignore").write_text("# this is a comment\n\nmain.py\n")
     (tmp_path / "main.py").write_text("x = 1")
     (tmp_path / "other.py").write_text("x = 2")
     result = detect(tmp_path)
@@ -138,9 +138,9 @@ def test_detect_follows_symlinked_file(tmp_path):
     assert any("link.py" in f for f in code)
 
 
-def test_tracely360liteignore_discovered_from_parent(tmp_path):
-    """A .tracely360liteignore in a parent directory applies to subdirectory scans."""
-    (tmp_path / ".tracely360liteignore").write_text("vendor/\n")
+def test_tracely360ignore_discovered_from_parent(tmp_path):
+    """A .tracely360ignore in a parent directory applies to subdirectory scans."""
+    (tmp_path / ".tracely360ignore").write_text("vendor/\n")
     sub = tmp_path / "packages" / "mylib"
     sub.mkdir(parents=True)
     (sub / "main.py").write_text("x = 1")
@@ -152,12 +152,12 @@ def test_tracely360liteignore_discovered_from_parent(tmp_path):
     code_files = result["files"]["code"]
     assert any("main.py" in f for f in code_files)
     assert not any("vendor" in f for f in code_files)
-    assert result["tracely360liteignore_patterns"] >= 1
+    assert result["tracely360ignore_patterns"] >= 1
 
 
-def test_tracely360liteignore_stops_at_git_boundary(tmp_path):
+def test_tracely360ignore_stops_at_git_boundary(tmp_path):
     """Upward search stops at the git repo root (.git directory)."""
-    (tmp_path / ".tracely360liteignore").write_text("main.py\n")
+    (tmp_path / ".tracely360ignore").write_text("main.py\n")
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / ".git").mkdir()
@@ -168,15 +168,15 @@ def test_tracely360liteignore_stops_at_git_boundary(tmp_path):
     result = detect(sub)
     code_files = result["files"]["code"]
     assert any("main.py" in f for f in code_files)
-    assert result["tracely360liteignore_patterns"] == 0
+    assert result["tracely360ignore_patterns"] == 0
 
 
-def test_tracely360liteignore_at_git_root_is_included(tmp_path):
-    """A .tracely360liteignore at the git repo root is included when scanning a subdir."""
+def test_tracely360ignore_at_git_root_is_included(tmp_path):
+    """A .tracely360ignore at the git repo root is included when scanning a subdir."""
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / ".git").mkdir()
-    (repo / ".tracely360liteignore").write_text("vendor/\n")
+    (repo / ".tracely360ignore").write_text("vendor/\n")
     sub = repo / "packages" / "mylib"
     sub.mkdir(parents=True)
     (sub / "main.py").write_text("x = 1")
@@ -188,7 +188,7 @@ def test_tracely360liteignore_at_git_root_is_included(tmp_path):
     code_files = result["files"]["code"]
     assert any("main.py" in f for f in code_files)
     assert not any("vendor" in f for f in code_files)
-    assert result["tracely360liteignore_patterns"] == 1
+    assert result["tracely360ignore_patterns"] == 1
 
 
 def test_detect_handles_circular_symlinks(tmp_path):
@@ -203,7 +203,7 @@ def test_detect_handles_circular_symlinks(tmp_path):
 
 def test_classify_video_extensions():
     """Video and audio file extensions should classify as VIDEO."""
-    from tracely360_lite.detect import FileType
+    from tracely360.detect import FileType
     assert classify_file(Path("lecture.mp4")) == FileType.VIDEO
     assert classify_file(Path("podcast.mp3")) == FileType.VIDEO
     assert classify_file(Path("talk.mov")) == FileType.VIDEO

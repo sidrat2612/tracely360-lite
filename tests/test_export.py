@@ -1,9 +1,9 @@
 import json
 import tempfile
 from pathlib import Path
-from tracely360_lite.build import build_from_json
-from tracely360_lite.cluster import cluster
-from tracely360_lite.export import to_json, to_cypher, to_graphml, to_html
+from tracely360.build import build_from_json
+from tracely360.cluster import cluster
+from tracely360.export import to_json, to_cypher, to_graphml, to_html
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

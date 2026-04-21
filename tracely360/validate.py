@@ -1,4 +1,4 @@
-# validate extraction JSON against the tracely360-lite schema before graph assembly
+# validate extraction JSON against the tracely360 schema before graph assembly
 from __future__ import annotations
 
 VALID_FILE_TYPES = {"code", "document", "paper", "image", "rationale", "endpoint"}
@@ -9,7 +9,7 @@ REQUIRED_EDGE_FIELDS = {"source", "target", "relation", "confidence", "source_fi
 
 def validate_extraction(data: dict) -> list[str]:
     """
-    Validate an extraction JSON dict against the tracely360-lite schema.
+    Validate an extraction JSON dict against the tracely360 schema.
     Returns a list of error strings - empty list means valid.
     """
     if not isinstance(data, dict):

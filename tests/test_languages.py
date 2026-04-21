@@ -2,7 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 import pytest
-from tracely360_lite.extract import (
+from tracely360.extract import (
     extract_java, extract_c, extract_cpp, extract_ruby,
     extract_csharp, extract_kotlin, extract_scala, extract_php,
     extract_swift, extract_go, extract_julia,
@@ -408,7 +408,7 @@ def test_swift_emits_calls():
 
 # ── Elixir ────────────────────────────────────────────────────────────────────
 
-from tracely360_lite.extract import extract_elixir
+from tracely360.extract import extract_elixir
 
 def test_elixir_finds_module():
     r = extract_elixir(FIXTURES / "sample.ex")
@@ -441,7 +441,7 @@ def test_elixir_method_edges():
 
 
 # ── Objective-C ──────────────────────────────────────────────────────────────
-from tracely360_lite.extract import extract_objc
+from tracely360.extract import extract_objc
 
 
 def test_objc_finds_interface():

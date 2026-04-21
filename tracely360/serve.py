@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 import networkx as nx
 from networkx.readwrite import json_graph
-from tracely360_lite.security import sanitize_label
+from tracely360.security import sanitize_label
 
 
 def _load_graph(graph_path: str) -> nx.Graph:
@@ -25,7 +25,7 @@ def _load_graph(graph_path: str) -> nx.Graph:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as exc:
-        print(f"error: graph.json is corrupted ({exc}). Re-run /tracely360-lite to rebuild.", file=sys.stderr)
+        print(f"error: graph.json is corrupted ({exc}). Re-run /tracely360 to rebuild.", file=sys.stderr)
         sys.exit(1)
 
 
@@ -147,7 +147,7 @@ def _filter_blank_stdin() -> None:
     sys.stdin = open(0, "r", closefd=False)
 
 
-def serve(graph_path: str = "tracely360-lite-out/graph.json") -> None:
+def serve(graph_path: str = "tracely360-out/graph.json") -> None:
     """Start the MCP server. Requires pip install mcp."""
     try:
         from mcp.server import Server
@@ -159,7 +159,7 @@ def serve(graph_path: str = "tracely360-lite-out/graph.json") -> None:
     G = _load_graph(graph_path)
     communities = _communities_from_graph(G)
 
-    server = Server("tracely360-lite")
+    server = Server("tracely360")
 
     @server.list_tools()
     async def list_tools() -> list[types.Tool]:
@@ -369,5 +369,5 @@ def serve(graph_path: str = "tracely360-lite-out/graph.json") -> None:
 
 
 if __name__ == "__main__":
-    graph_path = sys.argv[1] if len(sys.argv) > 1 else "tracely360-lite-out/graph.json"
+    graph_path = sys.argv[1] if len(sys.argv) > 1 else "tracely360-out/graph.json"
     serve(graph_path)

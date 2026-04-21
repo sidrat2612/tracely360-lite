@@ -12,7 +12,7 @@ detect() → extract() → build_from_json() → cluster() + score_all()
 
 | Module | Entry point | Purpose |
 |--------|-------------|---------|
-| `detect.py` | `detect(root)`, `classify_file(path)` | Scan corpus, classify files by type (code, document, paper, image, video), respect `.tracely360liteignore` |
+| `detect.py` | `detect(root)`, `classify_file(path)` | Scan corpus, classify files by type (code, document, paper, image, video), respect `.tracely360ignore` |
 | `extract.py` | `extract(paths, cache_root)`, `collect_files(target)` | Two-pass AST extraction + cross-file import resolution + endpoint discovery |
 | `build.py` | `build_from_json(extraction)`, `build(extractions)` | Assemble NetworkX graph from flat node/edge payloads; deduplication, ID normalization |
 | `cluster.py` | `cluster(G)`, `score_all(G, communities)` | Leiden community detection, cohesion scoring, oversized community splitting |
@@ -21,7 +21,7 @@ detect() → extract() → build_from_json() → cluster() + score_all()
 | `export.py` | `to_json()`, `to_html()`, `to_svg()`, `to_canvas()` | Multi-format graph export (vis.js HTML, node-link JSON, SVG, canvas) |
 | `wiki.py` | `to_wiki(G, communities, output_dir)` | Wikipedia-style markdown vault with bidirectional wikilinks |
 | `serve.py` | `serve(graph_path)` | MCP stdio server — 7 tools for agent access to the graph |
-| `ingest.py` | `ingest(url, target_dir)` | Fetch URLs (tweets, arXiv, PDFs, images, YouTube, web pages) into tracely360-lite-ready files |
+| `ingest.py` | `ingest(url, target_dir)` | Fetch URLs (tweets, arXiv, PDFs, images, YouTube, web pages) into tracely360-ready files |
 | `transcribe.py` | `transcribe(video_path)`, `transcribe_all(video_files)` | faster-whisper transcription with domain-aware prompts from corpus god nodes |
 | `hooks.py` | `install(path)`, `uninstall(path)` | Git post-commit/post-checkout hooks for auto-rebuild |
 | `watch.py` | `watch(watch_path, debounce)` | File system watcher — instant AST rebuild on code changes |
@@ -112,11 +112,11 @@ Communication is stdio only — no network listener.
 
 Paper detection uses a heuristic (arxiv IDs, DOI, "abstract", citations, `\cite` — threshold: 3+ signals).
 
-Sensitive files (`.pem`, `.key`, `.env`, credentials) and dependency directories (`node_modules`, `venv`, `dist`, `__pycache__`) are always excluded. `.tracely360liteignore` supports gitignore syntax for custom exclusions.
+Sensitive files (`.pem`, `.key`, `.env`, credentials) and dependency directories (`node_modules`, `venv`, `dist`, `__pycache__`) are always excluded. `.tracely360ignore` supports gitignore syntax for custom exclusions.
 
 ## Caching
 
-Per-file extraction cache in `tracely360-lite-out/cache/`. Keyed by SHA256 of file contents + relative path. Markdown files ignore YAML frontmatter changes. Portable across machines via relative paths.
+Per-file extraction cache in `tracely360-out/cache/`. Keyed by SHA256 of file contents + relative path. Markdown files ignore YAML frontmatter changes. Portable across machines via relative paths.
 
 ## Report structure
 
@@ -135,7 +135,7 @@ Per-file extraction cache in `tracely360-lite-out/cache/`. Keyed by SHA256 of fi
 11. Suggested Questions — questions the graph can answer
 # Architecture
 
-tracely360-lite is a local knowledge-graph engine packaged behind a CLI, assistant skills, and an optional MCP stdio server. The code path is deterministic for source files; semantic extraction for docs, papers, images, and transcripts is layered on top.
+tracely360 is a local knowledge-graph engine packaged behind a CLI, assistant skills, and an optional MCP stdio server. The code path is deterministic for source files; semantic extraction for docs, papers, images, and transcripts is layered on top.
 
 ## Runtime pipeline
 
@@ -149,7 +149,7 @@ detect(root)
   → to_json() / to_html() / to_obsidian()
 ```
 
-The pipeline passes plain Python dicts and NetworkX graphs between stages. Persistent outputs land under `tracely360-lite-out/`.
+The pipeline passes plain Python dicts and NetworkX graphs between stages. Persistent outputs land under `tracely360-out/`.
 
 ## Core modules
 
@@ -162,7 +162,7 @@ The pipeline passes plain Python dicts and NetworkX graphs between stages. Persi
 | `analyze.py` | `god_nodes(G)`, `surprising_connections(G, ...)`, `suggest_questions(G, ...)` | derive graph-level summaries and navigation hints |
 | `report.py` | `generate(...)` | render `GRAPH_REPORT.md` |
 | `export.py` | `to_json(...)`, `to_html(...)`, `to_obsidian(...)` | write graph outputs for tools and humans |
-| `serve.py` | `python -m tracely360_lite.serve <graph.json>` | expose `graph.json` over MCP stdio |
+| `serve.py` | `python -m tracely360.serve <graph.json>` | expose `graph.json` over MCP stdio |
 | `watch.py` | watch/update helpers | incremental graph rebuilds |
 | `ingest.py` | URL and file ingestion helpers | pull new corpus material into the graph |
 | `security.py` | validation helpers | guard URL fetches, graph paths, and rendered labels |

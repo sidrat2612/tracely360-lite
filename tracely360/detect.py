@@ -16,7 +16,7 @@ class FileType(str, Enum):
     VIDEO = "video"
 
 
-_MANIFEST_PATH = "tracely360-lite-out/manifest.json"
+_MANIFEST_PATH = "tracely360-out/manifest.json"
 
 CODE_EXTENSIONS = {'.py', '.ts', '.js', '.jsx', '.tsx', '.mjs', '.ejs', '.go', '.rs', '.java', '.cpp', '.cc', '.cxx', '.c', '.h', '.hpp', '.rb', '.swift', '.kt', '.kts', '.cs', '.scala', '.php', '.lua', '.toc', '.zig', '.ps1', '.ex', '.exs', '.m', '.mm', '.jl', '.vue', '.svelte', '.dart', '.v', '.sv'}
 DOC_EXTENSIONS = {'.md', '.mdx', '.txt', '.rst', '.html'}
@@ -263,13 +263,13 @@ def _is_noise_dir(part: str) -> bool:
     return False
 
 
-def _load_tracely360liteignore(root: Path) -> list[tuple[Path, str]]:
-    """Read .tracely360liteignore from root **and ancestor directories**.
+def _load_tracely360ignore(root: Path) -> list[tuple[Path, str]]:
+    """Read .tracely360ignore from root **and ancestor directories**.
 
     Returns a list of (anchor_dir, pattern) pairs. Each pattern is matched
     against paths relative to both the scan root and the anchor_dir where
-    the .tracely360liteignore file was found — so patterns written relative to a
-    parent directory still work when tracely360-lite is run on a subfolder.
+    the .tracely360ignore file was found — so patterns written relative to a
+    parent directory still work when tracely360 is run on a subfolder.
 
     Walks upward from *root* towards the filesystem root, stopping at a
     ``.git`` boundary. Lines starting with # are comments; blank lines ignored.
@@ -277,7 +277,7 @@ def _load_tracely360liteignore(root: Path) -> list[tuple[Path, str]]:
     patterns: list[tuple[Path, str]] = []
     current = root.resolve()
     while True:
-        ignore_file = current / ".tracely360liteignore"
+        ignore_file = current / ".tracely360ignore"
         if ignore_file.exists():
             for line in ignore_file.read_text(encoding="utf-8", errors="ignore").splitlines():
                 line = line.strip()
@@ -294,7 +294,7 @@ def _load_tracely360liteignore(root: Path) -> list[tuple[Path, str]]:
 
 
 def _is_ignored(path: Path, root: Path, patterns: list[tuple[Path, str]]) -> bool:
-    """Return True if path matches any .tracely360liteignore pattern."""
+    """Return True if path matches any .tracely360ignore pattern."""
     if not patterns:
         return False
 
@@ -322,7 +322,7 @@ def _is_ignored(path: Path, root: Path, patterns: list[tuple[Path, str]]) -> boo
                 return True
         except ValueError:
             pass
-        # Also try relative to the anchor dir (the .tracely360liteignore's location),
+        # Also try relative to the anchor dir (the .tracely360ignore's location),
         # so patterns written at a parent level still fire when running on a subfolder
         if anchor != root:
             try:
@@ -345,10 +345,10 @@ def detect(root: Path, *, follow_symlinks: bool = False) -> dict:
     total_words = 0
 
     skipped_sensitive: list[str] = []
-    ignore_patterns = _load_tracely360liteignore(root)
+    ignore_patterns = _load_tracely360ignore(root)
 
-    # Always include tracely360-lite-out/memory/ - query results filed back into the graph
-    memory_dir = root / "tracely360-lite-out" / "memory"
+    # Always include tracely360-out/memory/ - query results filed back into the graph
+    memory_dir = root / "tracely360-out" / "memory"
     scan_paths = [root]
     if memory_dir.exists():
         scan_paths.append(memory_dir)
@@ -382,7 +382,7 @@ def detect(root: Path, *, follow_symlinks: bool = False) -> dict:
                     seen.add(p)
                     all_files.append(p)
 
-    converted_dir = root / "tracely360-lite-out" / "converted"
+    converted_dir = root / "tracely360-out" / "converted"
 
     for p in all_files:
         # For memory dir files, skip hidden/noise filtering
@@ -410,7 +410,7 @@ def detect(root: Path, *, follow_symlinks: bool = False) -> dict:
                     total_words += count_words(md_path)
                 else:
                     # Conversion failed (library not installed) - skip with note
-                    skipped_sensitive.append(str(p) + " [office conversion failed - pip install tracely360-lite[office]]")
+                    skipped_sensitive.append(str(p) + " [office conversion failed - pip install tracely360[office]]")
                 continue
             files[ftype].append(str(p))
             if ftype != FileType.VIDEO:
@@ -440,7 +440,7 @@ def detect(root: Path, *, follow_symlinks: bool = False) -> dict:
         "needs_graph": needs_graph,
         "warning": warning,
         "skipped_sensitive": skipped_sensitive,
-        "tracely360liteignore_patterns": len(ignore_patterns),
+        "tracely360ignore_patterns": len(ignore_patterns),
     }
 
 

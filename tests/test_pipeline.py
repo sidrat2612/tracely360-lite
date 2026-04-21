@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from tracely360_lite.detect import detect
-from tracely360_lite.extract import collect_files, extract
-from tracely360_lite.build import build_from_json
-from tracely360_lite.cluster import cluster, score_all
-from tracely360_lite.analyze import god_nodes, surprising_connections, suggest_questions
-from tracely360_lite.report import generate
-from tracely360_lite.export import to_json, to_html, to_obsidian
+from tracely360.detect import detect
+from tracely360.extract import collect_files, extract
+from tracely360.build import build_from_json
+from tracely360.cluster import cluster, score_all
+from tracely360.analyze import god_nodes, surprising_connections, suggest_questions
+from tracely360.report import generate
+from tracely360.export import to_json, to_html, to_obsidian
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

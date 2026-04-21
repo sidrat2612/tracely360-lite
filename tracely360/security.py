@@ -102,7 +102,7 @@ def safe_fetch(url: str, max_bytes: int = _MAX_FETCH_BYTES, timeout: int = 30) -
     """
     validate_url(url)
     opener = _build_opener()
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 tracely360-lite/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 tracely360/1.0"})
 
     with opener.open(req, timeout=timeout) as resp:
         # urllib raises HTTPError for non-2xx when using urlopen directly;
@@ -144,9 +144,9 @@ def safe_fetch_text(url: str, max_bytes: int = _MAX_TEXT_BYTES, timeout: int = 1
 def validate_graph_path(path: str | Path, base: Path | None = None) -> Path:
     """Resolve *path* and verify it stays inside *base*.
 
-    *base* defaults to the `tracely360-lite-out` directory relative to CWD.
+    *base* defaults to the `tracely360-out` directory relative to CWD.
     Also requires the base directory to exist, so a caller cannot
-    trick tracely360-lite into reading files before any graph has been built.
+    trick tracely360 into reading files before any graph has been built.
 
     Raises:
         ValueError  - path escapes base, or base does not exist
@@ -155,17 +155,17 @@ def validate_graph_path(path: str | Path, base: Path | None = None) -> Path:
     if base is None:
         resolved_hint = Path(path).resolve()
         for candidate in [resolved_hint, *resolved_hint.parents]:
-            if candidate.name == "tracely360-lite-out":
+            if candidate.name == "tracely360-out":
                 base = candidate
                 break
         if base is None:
-            base = Path("tracely360-lite-out").resolve()
+            base = Path("tracely360-out").resolve()
 
     base = base.resolve()
     if not base.exists():
         raise ValueError(
             f"Graph base directory does not exist: {base}. "
-            "Run /tracely360-lite first to build the graph."
+            "Run /tracely360 first to build the graph."
         )
 
     resolved = Path(path).resolve()
@@ -174,7 +174,7 @@ def validate_graph_path(path: str | Path, base: Path | None = None) -> Path:
     except ValueError:
         raise ValueError(
             f"Path {path!r} escapes the allowed directory {base}. "
-            "Only paths inside tracely360-lite-out/ are permitted."
+            "Only paths inside tracely360-out/ are permitted."
         )
 
     if not resolved.exists():

@@ -1,11 +1,11 @@
-"""Tests for tracely360-lite/benchmark.py."""
+"""Tests for tracely360/benchmark.py."""
 from __future__ import annotations
 import json
 import pytest
 import networkx as nx
 from networkx.readwrite import json_graph
 
-from tracely360_lite.benchmark import run_benchmark, print_benchmark, _query_subgraph_tokens, _SAMPLE_QUESTIONS
+from tracely360.benchmark import run_benchmark, print_benchmark, _query_subgraph_tokens, _SAMPLE_QUESTIONS
 
 
 def _make_graph() -> nx.Graph:
