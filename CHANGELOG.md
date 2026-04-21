@@ -11,6 +11,10 @@ Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360-l
 - Change: license from MIT to Apache 2.0
 - Docs: full doc rewrite — README, ARCHITECTURE, SECURITY recreated from scratch
 
+## 0.4.24 (2026-04-21)
+
+- Packaging: bump release version to avoid PyPI filename reuse rejection after deleted `0.4.23` artifacts
+
 ## 0.4.23 (2026-04-18)
 
 - Fix: stale skill version warning persists after `tracely360 install` when multiple platforms installed — now refreshes `.tracely360_version` in all known skill directories (#178)
