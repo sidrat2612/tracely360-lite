@@ -106,6 +106,30 @@ def test_to_html_contains_search():
         content = out.read_text()
         assert "search" in content.lower()
 
+def test_to_html_contains_selection_helpers():
+    G = make_graph()
+    communities = cluster(G)
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "graph.html"
+        to_html(G, communities, str(out))
+        content = out.read_text()
+        assert "function selectNode(nodeId" in content
+        assert "function selectCommunity(communityId" in content
+        assert "function clearSelection(options" in content
+        assert "function showCommunityInfo(communityId" in content
+        assert "data-node-id=" in content
+        assert "onclick=\"focusNode(" not in content
+
+def test_to_html_contains_details_panel_copy():
+    G = make_graph()
+    communities = cluster(G)
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "graph.html"
+        to_html(G, communities, str(out))
+        content = out.read_text()
+        assert "Details" in content
+        assert "Click a node or community to inspect it" in content
+
 def test_to_html_contains_legend_with_labels():
     G = make_graph()
     communities = cluster(G)

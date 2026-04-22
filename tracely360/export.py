@@ -33,20 +33,21 @@ def _html_styles() -> str:
   #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
   .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .search-item:hover { background: #2a2a4e; }
-  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+    #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; max-height: 360px; overflow-y: auto; }
   #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
   #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
   #info-content .field { margin-bottom: 5px; }
   #info-content .field b { color: #e0e0e0; }
   #info-content .empty { color: #555; font-style: italic; }
+    #info-content .hint { color: #888; font-size: 11px; }
   .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
   .neighbor-link:hover { background: #2a2a4e; }
-  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+    .details-list { max-height: 180px; overflow-y: auto; margin-top: 4px; }
   #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
   #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
   .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
   .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
-  .legend-item.dimmed { opacity: 0.35; }
+    .legend-item.active { background: #2a2a4e; padding-left: 4px; box-shadow: inset 0 0 0 1px #4E79A7; }
   .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .legend-count { color: #666; font-size: 11px; }
@@ -102,6 +103,15 @@ def _html_script(nodes_json: str, edges_json: str, legend_json: str) -> str:
 const RAW_NODES = {nodes_json};
 const RAW_EDGES = {edges_json};
 const LEGEND = {legend_json};
+const RAW_NODE_MAP = new Map(RAW_NODES.map(n => [n.id, n]));
+const COMMUNITY_NODE_MAP = new Map();
+
+RAW_NODES.forEach(n => {{
+    if (!COMMUNITY_NODE_MAP.has(n.community)) {{
+        COMMUNITY_NODE_MAP.set(n.community, []);
+    }}
+    COMMUNITY_NODE_MAP.get(n.community).push(n);
+}});
 
 // HTML-escape helper — prevents XSS when injecting graph data into innerHTML
 function esc(s) {{
@@ -111,7 +121,7 @@ function esc(s) {{
 // Build vis datasets
 const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({{
   id: n.id, label: n.label, color: n.color, size: n.size,
-  font: n.font, title: n.title,
+    font: n.font, title: n.title, shape: n.shape,
   _community: n.community, _community_name: n.community_name,
   _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
 }})));
@@ -156,30 +166,149 @@ network.once('stabilizationIterationsDone', () => {{
   network.setOptions({{ physics: {{ enabled: false }} }});
 }});
 
-function showInfo(nodeId) {{
-  const n = nodesDS.get(nodeId);
-  if (!n) return;
+let activeNodeId = null;
+let activeCommunityId = null;
+
+function sortNodes(nodes) {{
+    return nodes.slice().sort((left, right) => {{
+        if (right.degree !== left.degree) return right.degree - left.degree;
+        return String(left.label).localeCompare(String(right.label));
+    }});
+}}
+
+function buildNodeLinks(nodes, limit = 24) {{
+    const sorted = sortNodes(nodes).slice(0, limit);
+    const html = sorted.map(node => {{
+        const color = node && node.color ? node.color.background : '#555';
+        return `<span class="neighbor-link" style="border-left-color:${{esc(color)}}" data-node-id="${{esc(String(node.id))}}">${{esc(node.label)}}</span>`;
+    }}).join('');
+    return {{ html, remaining: Math.max(nodes.length - sorted.length, 0) }};
+}}
+
+function showEmptyInfo() {{
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node or community to inspect it</span>';
+}}
+
+function showNodeInfo(nodeId) {{
+    const rawNode = RAW_NODE_MAP.get(nodeId) || {{}};
+    const datasetNode = nodesDS.get(nodeId) || {{}};
+    const label = rawNode.label || datasetNode.label || nodeId;
+    const fileType = datasetNode._file_type || rawNode.file_type || 'unknown';
+    const communityName = datasetNode._community_name || rawNode.community_name || 'unknown';
+    const sourceFile = datasetNode._source_file || rawNode.source_file || '-';
+    const degree = datasetNode._degree ?? rawNode.degree ?? '-';
   const neighborIds = network.getConnectedNodes(nodeId);
-  const neighborItems = neighborIds.map(nid => {{
-    const nb = nodesDS.get(nid);
-    const color = nb ? nb.color.background : '#555';
-    return `<span class="neighbor-link" style="border-left-color:${{esc(color)}}" onclick="focusNode(${{JSON.stringify(nid)}})">${{esc(nb ? nb.label : nid)}}</span>`;
-  }}).join('');
+    const neighborNodes = neighborIds
+        .map(nid => RAW_NODE_MAP.get(nid) || nodesDS.get(nid))
+        .filter(Boolean);
+    const neighborList = buildNodeLinks(neighborNodes, 18);
   document.getElementById('info-content').innerHTML = `
-    <div class="field"><b>${{esc(n.label)}}</b></div>
-    <div class="field">Type: ${{esc(n._file_type || 'unknown')}}</div>
-    <div class="field">Community: ${{esc(n._community_name)}}</div>
-    <div class="field">Source: ${{esc(n._source_file || '-')}}</div>
-    <div class="field">Degree: ${{n._degree}}</div>
-    ${{neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${{neighborIds.length}})</div><div id="neighbors-list">${{neighborItems}}</div>` : ''}}
+        <div class="field"><b>${{esc(label)}}</b></div>
+        <div class="field">Type: ${{esc(fileType)}}</div>
+        <div class="field">Community: ${{esc(communityName)}}</div>
+        <div class="field">Source: ${{esc(sourceFile)}}</div>
+        <div class="field">Degree: ${{degree}}</div>
+        ${{neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${{neighborIds.length}})</div><div class="details-list">${{neighborList.html}}</div>${{neighborList.remaining > 0 ? `<div class="field hint">...and ${{neighborList.remaining}} more neighbors</div>` : ''}}` : ''}}
   `;
 }}
 
-function focusNode(nodeId) {{
-  network.focus(nodeId, {{ scale: 1.4, animation: true }});
-  network.selectNodes([nodeId]);
-  showInfo(nodeId);
+function showCommunityInfo(communityId) {{
+    const communityNodes = COMMUNITY_NODE_MAP.get(communityId) || [];
+    if (!communityNodes.length) {{
+        showEmptyInfo();
+        return;
+    }}
+    const communityName = communityNodes[0].community_name || `Community ${{communityId}}`;
+    const nodeList = buildNodeLinks(communityNodes, 24);
+    const strongestNode = sortNodes(communityNodes)[0];
+    document.getElementById('info-content').innerHTML = `
+        <div class="field"><b>${{esc(communityName)}}</b></div>
+        <div class="field">Community ID: ${{communityId}}</div>
+        <div class="field">Nodes: ${{communityNodes.length}}</div>
+        <div class="field">Top node: ${{esc(strongestNode ? strongestNode.label : '-')}}</div>
+        <div class="field hint" style="margin-top:8px">Click a node below to drill into it.</div>
+        <div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Community nodes</div>
+        <div class="details-list">${{nodeList.html}}</div>
+        ${{nodeList.remaining > 0 ? `<div class="field hint">...and ${{nodeList.remaining}} more nodes</div>` : ''}}
+    `;
 }}
+
+function updateLegendState() {{
+    document.querySelectorAll('.legend-item').forEach(item => {{
+        item.classList.toggle('active', item.dataset.communityId === String(activeCommunityId));
+    }});
+}}
+
+function applySelectionState() {{
+    let visibleNodeIds = null;
+    if (activeNodeId !== null) {{
+        visibleNodeIds = new Set([activeNodeId]);
+    }} else if (activeCommunityId !== null) {{
+        visibleNodeIds = new Set((COMMUNITY_NODE_MAP.get(activeCommunityId) || []).map(node => node.id));
+    }}
+
+    nodesDS.update(RAW_NODES.map(node => ({{
+        id: node.id,
+        hidden: visibleNodeIds ? !visibleNodeIds.has(node.id) : false,
+    }})));
+    edgesDS.update(RAW_EDGES.map((edge, index) => ({{
+        id: index,
+        hidden: visibleNodeIds ? !(visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to)) : false,
+    }})));
+    updateLegendState();
+}}
+
+function clearSelection(options = {{}}) {{
+    activeNodeId = null;
+    activeCommunityId = null;
+    applySelectionState();
+    network.unselectAll();
+    showEmptyInfo();
+    if (options.resetView) {{
+        network.fit({{ animation: true }});
+    }}
+}}
+
+function selectNode(nodeId, options = {{}}) {{
+    if (!RAW_NODE_MAP.has(nodeId)) return;
+    activeNodeId = nodeId;
+    activeCommunityId = null;
+    applySelectionState();
+    network.selectNodes([nodeId]);
+    showNodeInfo(nodeId);
+    if (options.focus !== false) {{
+        network.focus(nodeId, {{ scale: 1.4, animation: true }});
+    }}
+}}
+
+function selectCommunity(communityId, options = {{}}) {{
+    const communityNodes = COMMUNITY_NODE_MAP.get(communityId) || [];
+    if (!communityNodes.length) return;
+    if (activeCommunityId === communityId && options.toggle !== false) {{
+        clearSelection({{ resetView: true }});
+        return;
+    }}
+    activeCommunityId = communityId;
+    activeNodeId = null;
+    applySelectionState();
+    network.unselectAll();
+    showCommunityInfo(communityId);
+    if (options.fit !== false) {{
+        network.fit({{ nodes: communityNodes.map(node => node.id), animation: true }});
+    }}
+}}
+
+function focusNode(nodeId) {{
+    selectNode(nodeId);
+}}
+
+document.getElementById('info-content').addEventListener('click', event => {{
+    const nodeLink = event.target.closest('.neighbor-link');
+    if (!nodeLink) return;
+    const nodeId = nodeLink.getAttribute('data-node-id');
+    if (!nodeId) return;
+    focusNode(nodeId);
+}});
 
 // Track hovered node — hover detection is more reliable than click params
 let hoveredNodeId = null;
@@ -193,15 +322,14 @@ network.on('blurNode', () => {{
 }});
 container.addEventListener('click', () => {{
   if (hoveredNodeId !== null) {{
-    showInfo(hoveredNodeId);
-    network.selectNodes([hoveredNodeId]);
+        selectNode(hoveredNodeId);
   }}
 }});
 network.on('click', params => {{
-  if (params.nodes.length > 0) {{
-    showInfo(params.nodes[0]);
+    if (hoveredNodeId === null && params.nodes.length > 0) {{
+        selectNode(params.nodes[0], {{ focus: false }});
   }} else if (hoveredNodeId === null) {{
-    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+        clearSelection();
   }}
 }});
 
@@ -221,9 +349,7 @@ searchInput.addEventListener('input', () => {{
     el.style.borderLeft = `3px solid ${{n.color.background}}`;
     el.style.paddingLeft = '8px';
     el.onclick = () => {{
-      network.focus(n.id, {{ scale: 1.5, animation: true }});
-      network.selectNodes([n.id]);
-      showInfo(n.id);
+            selectNode(n.id);
       searchResults.style.display = 'none';
       searchInput.value = '';
     }};
@@ -235,29 +361,22 @@ document.addEventListener('click', e => {{
     searchResults.style.display = 'none';
 }});
 
-const hiddenCommunities = new Set();
 const legendEl = document.getElementById('legend');
 LEGEND.forEach(c => {{
   const item = document.createElement('div');
   item.className = 'legend-item';
-  item.innerHTML = `<div class="legend-dot" style="background:${{c.color}}"></div>
-    <span class="legend-label">${{c.label}}</span>
+    item.dataset.communityId = String(c.cid);
+    item.innerHTML = `<div class="legend-dot" style="background:${{esc(c.color)}}"></div>
+        <span class="legend-label">${{esc(c.label)}}</span>
     <span class="legend-count">${{c.count}}</span>`;
   item.onclick = () => {{
-    if (hiddenCommunities.has(c.cid)) {{
-      hiddenCommunities.delete(c.cid);
-      item.classList.remove('dimmed');
-    }} else {{
-      hiddenCommunities.add(c.cid);
-      item.classList.add('dimmed');
-    }}
-    const updates = RAW_NODES
-      .filter(n => n.community === c.cid)
-      .map(n => ({{ id: n.id, hidden: hiddenCommunities.has(c.cid) }}));
-    nodesDS.update(updates);
+        selectCommunity(c.cid);
   }};
   legendEl.appendChild(item);
 }});
+
+showEmptyInfo();
+updateLegendState();
 </script>"""
 
 
@@ -411,7 +530,7 @@ def to_html(
     legend_data = []
     for cid in sorted((community_labels or {}).keys()):
         color = COMMUNITY_COLORS[cid % len(COMMUNITY_COLORS)]
-        lbl = _html.escape(sanitize_label((community_labels or {}).get(cid, f"Community {cid}")))
+        lbl = sanitize_label((community_labels or {}).get(cid, f"Community {cid}"))
         n = len(communities.get(cid, []))
         legend_data.append({"cid": cid, "color": color, "label": lbl, "count": n})
 
@@ -442,8 +561,8 @@ def to_html(
     <div id="search-results"></div>
   </div>
   <div id="info-panel">
-    <h3>Node Info</h3>
-    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+        <h3>Details</h3>
+        <div id="info-content"><span class="empty">Click a node or community to inspect it</span></div>
   </div>
   <div id="legend-wrap">
     <h3>Communities</h3>

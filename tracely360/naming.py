@@ -8,28 +8,18 @@ _MARKDOWN_SUFFIX_RE = re.compile(r"\.(md|mdx|markdown)$", flags=re.IGNORECASE)
 
 
 def normalize_inline_text(text: str) -> str:
-    """Normalize multi-line text to a single line by replacing line breaks with spaces and trimming surrounding whitespace."""
+    """Normalize multi-line text to a single line and trim surrounding whitespace."""
     return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").strip()
 
-def strip_diacritics(text: str) -> str:
-    """Return text with diacritics removed via NFKD normalization.
 
-    The input is first normalized with Unicode NFKD decomposition, then
-    combining characters are removed to produce text safer for ASCII-oriented
-    naming contexts.
-    """
 def strip_diacritics(text: str) -> str:
+    """Return text with diacritics removed via NFKD normalization."""
     nfkd = unicodedata.normalize("NFKD", text)
     return "".join(char for char in nfkd if not unicodedata.combining(char))
 
 
-def safe_wiki_filename(label: str, fallback: str = "unnamed") -> str:
-    """Return a wiki-safe filename derived from ``label``.
-
-    Normalizes inline whitespace, replaces spaces with underscores, and
-    replaces forward slashes and colons with dashes. If the transformed
-    filename is empty, returns ``fallback`` instead.
-    """
+def safe_note_name(label: str, fallback: str = "unnamed") -> str:
+    """Return a safe note name with invalid filename characters removed."""
     cleaned = normalize_inline_text(label)
     cleaned = _INVALID_NOTE_CHARS_RE.sub("", cleaned)
     cleaned = _MARKDOWN_SUFFIX_RE.sub("", cleaned)
@@ -39,4 +29,6 @@ def safe_wiki_filename(label: str, fallback: str = "unnamed") -> str:
 def safe_wiki_filename(label: str, fallback: str = "unnamed") -> str:
     cleaned = normalize_inline_text(label)
     cleaned = cleaned.replace("/", "-").replace(" ", "_").replace(":", "-")
+    cleaned = _INVALID_NOTE_CHARS_RE.sub("", cleaned)
+    cleaned = _MARKDOWN_SUFFIX_RE.sub("", cleaned)
     return cleaned or fallback
