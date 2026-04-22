@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracely360"
-version = "0.4.25"
+version = "0.4.26"
 description = "Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph — no LLM required for AST extraction"
 readme = "README.md"
 license = "Apache-2.0"
