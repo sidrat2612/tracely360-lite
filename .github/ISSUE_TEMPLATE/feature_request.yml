@@ -1,0 +1,42 @@
+name: Feature request
+description: Propose a focused improvement to tracely360.
+title: "[feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please explain the problem first. Large or scope-changing ideas should start as an issue before any pull request.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user problem or workflow gap does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Keep the proposal concrete.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope fit
+      description: Explain how this fits tracely360's deterministic, local, AST-first approach.
+      placeholder: This keeps extraction deterministic and does not add hosted LLM dependencies.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional, but useful when the tradeoffs are not obvious.
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: What tests, fixtures, or examples would prove this works?

@@ -1,0 +1,72 @@
+name: Bug report
+description: Report a reproducible problem in tracely360.
+title: "[bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please include a minimal reproduction and remove any secrets from logs before posting.
+  - type: input
+    id: version
+    attributes:
+      label: tracely360 version
+      placeholder: 0.4.27
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: 3.12.3
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15.4 / Ubuntu 24.04 / Windows 11
+    validations:
+      required: true
+  - type: input
+    id: install-method
+    attributes:
+      label: Install method
+      placeholder: pip install tracely360 / pipx / editable install
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: Paste the exact command you ran.
+      placeholder: tracely360 update .
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Keep it small and deterministic when possible.
+      placeholder: |
+        1. Create a repo with ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output or traceback
+      render: shell

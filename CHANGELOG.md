@@ -10,6 +10,7 @@ Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360-l
 - Fix: Whisper prompt/model env vars now accept `TRACELY360_WHISPER_*` names while preserving legacy `GRAPHIFY_WHISPER_*` compatibility
 - Change: license from MIT to Apache 2.0
 - Docs: full doc rewrite — README, ARCHITECTURE, SECURITY recreated from scratch
+- Docs: add CONTRIBUTING, CODE_OF_CONDUCT, SUPPORT, and GitHub issue/PR templates for the public repository workflow
 
 ## 0.4.24 (2026-04-21)
 

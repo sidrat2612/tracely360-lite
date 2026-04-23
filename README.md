@@ -16,6 +16,12 @@ Turn any folder of code, docs, papers, images, or videos into a queryable knowle
 - **Per-file caching** — re-runs only process changed files (SHA256-based)
 - **Git hooks** — auto-rebuild on commit/checkout
 
+## Project scope
+
+- Deterministic, local-first analysis. Core graph extraction should stay explainable and reproducible.
+- No hosted LLM dependency in the analysis pipeline.
+- If you want to propose a large feature or scope change, open an issue before sending a pull request.
+
 ## Install
 
 ```bash
@@ -167,6 +173,12 @@ Recommended `.gitignore` additions:
 ```gitignore
 tracely360-out/cache/
 ```
+
+## Community
+
+- Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SUPPORT.md](SUPPORT.md), and [SECURITY.md](SECURITY.md).
+- Use public GitHub issues and pull requests for bugs, proposals, and design discussion. Keep private contact for security reports or sensitive conduct matters only.
+- These community docs are aligned with guidance from [Open Source Guides](https://opensource.guide/).
 
 ## License
 

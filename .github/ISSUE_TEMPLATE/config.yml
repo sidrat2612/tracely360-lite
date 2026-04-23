@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support and troubleshooting
+    url: https://github.com/sidrat2612/tracely360-lite/blob/main/SUPPORT.md
+    about: Use the support guide before opening a general question.
+  - name: Security policy
+    url: https://github.com/sidrat2612/tracely360-lite/blob/main/SECURITY.md
+    about: Report vulnerabilities privately. Do not open a public issue.
+  - name: Code of conduct
+    url: https://github.com/sidrat2612/tracely360-lite/blob/main/CODE_OF_CONDUCT.md
+    about: Review expected behavior and reporting instructions.
