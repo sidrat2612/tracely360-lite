@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracely360"
-version = "0.4.26"
+version = "0.4.27"
 description = "Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph — no LLM required for AST extraction"
 readme = "README.md"
 license = "Apache-2.0"
@@ -25,7 +25,7 @@ keywords = [
     "kiro",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: production",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
