@@ -117,6 +117,14 @@ def test_to_html_contains_selection_helpers():
         assert "function selectCommunity(communityId" in content
         assert "function clearSelection(options" in content
         assert "function showCommunityInfo(communityId" in content
+        assert "function setSectionCollapsed(sectionId, collapsed)" in content
+        assert "class=\"section-toggle\"" in content
+        assert "data-section-id=\"info-panel\"" in content
+        assert "data-section-id=\"legend-wrap\"" in content
+        assert "class=\"details-expand\"" in content
+        assert "data-expand-kind=" in content
+        assert "expandKind === 'neighbors'" in content
+        assert "expandKind === 'cluster-nodes'" in content
         assert "data-node-id=" in content
         assert "onclick=\"focusNode(" not in content
 
@@ -128,7 +136,7 @@ def test_to_html_contains_details_panel_copy():
         to_html(G, communities, str(out))
         content = out.read_text()
         assert "Details" in content
-        assert "Click a node or community to inspect it" in content
+        assert "Click a node or cluster to inspect it" in content
 
 def test_to_html_contains_legend_with_labels():
     G = make_graph()

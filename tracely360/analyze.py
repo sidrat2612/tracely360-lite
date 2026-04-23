@@ -165,7 +165,7 @@ def _surprise_score(
     cid_v = node_community.get(v)
     if cid_u is not None and cid_v is not None and cid_u != cid_v:
         score += 1
-        reasons.append("bridges separate communities")
+        reasons.append("bridges separate clusters")
 
     # 4b. Semantic similarity bonus - non-obvious conceptual links score higher
     if data.get("relation") == "semantically_similar_to":
@@ -374,15 +374,15 @@ def suggest_questions(
         for node_id, score in bridges:
             label = G.nodes[node_id].get("label", node_id)
             cid = node_community.get(node_id)
-            comm_label = community_labels.get(cid, f"Community {cid}") if cid is not None else "unknown"
+            comm_label = community_labels.get(cid, f"Cluster {cid}") if cid is not None else "unknown"
             neighbors = list(G.neighbors(node_id))
             neighbor_comms = {node_community.get(n) for n in neighbors if node_community.get(n) != cid}
             if neighbor_comms:
-                other_labels = [community_labels.get(c, f"Community {c}") for c in neighbor_comms]
+                other_labels = [community_labels.get(c, f"Cluster {c}") for c in neighbor_comms]
                 questions.append({
                     "type": "bridge_node",
                     "question": f"Why does `{label}` connect `{comm_label}` to {', '.join(f'`{l}`' for l in other_labels)}?",
-                    "why": f"High betweenness centrality ({score:.3f}) - this node is a cross-community bridge.",
+                    "why": f"High betweenness centrality ({score:.3f}) - this node is a cross-cluster bridge.",
                 })
 
     # 3. God nodes with many INFERRED edges → verification questions
@@ -434,11 +434,11 @@ def suggest_questions(
     for cid, nodes in communities.items():
         score = cohesion_score(G, nodes)
         if score < 0.15 and len(nodes) >= 5:
-            label = community_labels.get(cid, f"Community {cid}")
+            label = community_labels.get(cid, f"Cluster {cid}")
             questions.append({
                 "type": "low_cohesion",
                 "question": f"Should `{label}` be split into smaller, more focused modules?",
-                "why": f"Cohesion score {score} - nodes in this community are weakly interconnected.",
+                "why": f"Cohesion score {score} - nodes in this cluster are weakly interconnected.",
             })
 
     if not questions:
@@ -448,7 +448,7 @@ def suggest_questions(
             "why": (
                 "Not enough signal to generate questions. "
                 "This usually means the corpus has no AMBIGUOUS edges, no bridge nodes, "
-                "no INFERRED relationships, and all communities are tightly cohesive. "
+                "no INFERRED relationships, and all clusters are tightly cohesive. "
                 "Add more files or run with --mode deep to extract richer edges."
             ),
         }]

@@ -114,8 +114,8 @@ def test_to_wiki_skips_missing_god_node_ids(tmp_path):
 def test_to_wiki_no_labels_uses_fallback(tmp_path):
     G = _make_graph()
     to_wiki(G, COMMUNITIES, tmp_path)  # no labels
-    assert (tmp_path / "Community_0.md").exists()
-    assert (tmp_path / "Community_1.md").exists()
+    assert (tmp_path / "Cluster_0.md").exists()
+    assert (tmp_path / "Cluster_1.md").exists()
 
 
 def test_article_navigation_footer(tmp_path):

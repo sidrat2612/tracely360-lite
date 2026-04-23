@@ -95,7 +95,7 @@ def _subgraph_to_text(G: nx.Graph, nodes: set[str], edges: list[tuple], token_bu
     lines = []
     for nid in sorted(nodes, key=lambda n: G.degree(n), reverse=True):
         d = G.nodes[nid]
-        line = f"NODE {sanitize_label(d.get('label', nid))} [src={d.get('source_file', '')} loc={d.get('source_location', '')} community={d.get('community', '')}]"
+        line = f"NODE {sanitize_label(d.get('label', nid))} [src={d.get('source_file', '')} loc={d.get('source_location', '')} cluster={d.get('community', '')}]"
         lines.append(line)
     for u, v in edges:
         if u in nodes and v in nodes:
@@ -202,10 +202,10 @@ def serve(graph_path: str = "tracely360-out/graph.json") -> None:
             ),
             types.Tool(
                 name="get_community",
-                description="Get all nodes in a community by community ID.",
+                description="Get all nodes in a cluster by community ID.",
                 inputSchema={
                     "type": "object",
-                    "properties": {"community_id": {"type": "integer", "description": "Community ID (0-indexed by size)"}},
+                    "properties": {"community_id": {"type": "integer", "description": "Cluster ID (0-indexed by size)"}},
                     "required": ["community_id"],
                 },
             ),
@@ -260,7 +260,7 @@ def serve(graph_path: str = "tracely360-out/graph.json") -> None:
             f"  ID: {nid}",
             f"  Source: {d.get('source_file', '')} {d.get('source_location', '')}",
             f"  Type: {d.get('file_type', '')}",
-            f"  Community: {d.get('community', '')}",
+            f"  Cluster: {d.get('community', '')}",
             f"  Degree: {G.degree(nid)}",
         ])
 
@@ -284,8 +284,8 @@ def serve(graph_path: str = "tracely360-out/graph.json") -> None:
         cid = int(arguments["community_id"])
         nodes = communities.get(cid, [])
         if not nodes:
-            return f"Community {cid} not found."
-        lines = [f"Community {cid} ({len(nodes)} nodes):"]
+            return f"Cluster {cid} not found."
+        lines = [f"Cluster {cid} ({len(nodes)} nodes):"]
         for n in nodes:
             d = G.nodes[n]
             lines.append(f"  {d.get('label', n)} [{d.get('source_file', '')}]")
@@ -304,7 +304,7 @@ def serve(graph_path: str = "tracely360-out/graph.json") -> None:
         return (
             f"Nodes: {G.number_of_nodes()}\n"
             f"Edges: {G.number_of_edges()}\n"
-            f"Communities: {len(communities)}\n"
+            f"Clusters: {len(communities)}\n"
             f"EXTRACTED: {round(confs.count('EXTRACTED')/total*100)}%\n"
             f"INFERRED: {round(confs.count('INFERRED')/total*100)}%\n"
             f"AMBIGUOUS: {round(confs.count('AMBIGUOUS')/total*100)}%\n"

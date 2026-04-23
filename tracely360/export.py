@@ -33,8 +33,13 @@ def _html_styles() -> str:
   #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
   .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .search-item:hover { background: #2a2a4e; }
-    #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; max-height: 360px; overflow-y: auto; }
-  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .section-title { font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+    .section-toggle { background: transparent; border: 1px solid #3a3a5e; border-radius: 999px; color: #9fb6d9; cursor: pointer; font-size: 10px; letter-spacing: 0.04em; padding: 3px 8px; text-transform: uppercase; }
+    .section-toggle:hover { background: #2a2a4e; border-color: #4E79A7; color: #d3e1f5; }
+    .section-body.is-hidden { display: none; }
+        #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; max-height: 360px; overflow-y: auto; }
+    #info-panel .section-body { margin-top: 8px; }
   #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
   #info-content .field { margin-bottom: 5px; }
   #info-content .field b { color: #e0e0e0; }
@@ -42,9 +47,12 @@ def _html_styles() -> str:
     #info-content .hint { color: #888; font-size: 11px; }
   .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
   .neighbor-link:hover { background: #2a2a4e; }
+    .details-expand { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; background: transparent; border: 1px solid #3a3a5e; border-radius: 6px; color: #9fb6d9; font-size: 11px; text-align: left; cursor: pointer; }
+    .details-expand:hover { background: #2a2a4e; border-color: #4E79A7; color: #d3e1f5; }
     .details-list { max-height: 180px; overflow-y: auto; margin-top: 4px; }
-  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
-  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    #legend-wrap { flex: 1; display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
+    #legend-wrap.collapsed { flex: 0 0 auto; }
+    #legend-wrap .section-body { flex: 1; margin-top: 10px; overflow-y: auto; }
   .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
   .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
     .legend-item.active { background: #2a2a4e; padding-left: 4px; box-shadow: inset 0 0 0 1px #4E79A7; }
@@ -168,6 +176,22 @@ network.once('stabilizationIterationsDone', () => {{
 
 let activeNodeId = null;
 let activeCommunityId = null;
+const DEFAULT_NODE_NEIGHBOR_LIMIT = 18;
+const DEFAULT_CLUSTER_NODE_LIMIT = 24;
+let activeNodeNeighborLimit = DEFAULT_NODE_NEIGHBOR_LIMIT;
+let activeClusterNodeLimit = DEFAULT_CLUSTER_NODE_LIMIT;
+
+function setSectionCollapsed(sectionId, collapsed) {{
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const body = section.querySelector('.section-body');
+    const button = section.querySelector('.section-toggle');
+    if (!body || !button) return;
+    body.classList.toggle('is-hidden', collapsed);
+    section.classList.toggle('collapsed', collapsed);
+    button.textContent = collapsed ? 'Show' : 'Hide';
+    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+}}
 
 function sortNodes(nodes) {{
     return nodes.slice().sort((left, right) => {{
@@ -177,16 +201,22 @@ function sortNodes(nodes) {{
 }}
 
 function buildNodeLinks(nodes, limit = 24) {{
-    const sorted = sortNodes(nodes).slice(0, limit);
-    const html = sorted.map(node => {{
+    const sorted = sortNodes(nodes);
+    const visible = sorted.slice(0, limit);
+    const html = visible.map(node => {{
         const color = node && node.color ? node.color.background : '#555';
         return `<span class="neighbor-link" style="border-left-color:${{esc(color)}}" data-node-id="${{esc(String(node.id))}}">${{esc(node.label)}}</span>`;
     }}).join('');
-    return {{ html, remaining: Math.max(nodes.length - sorted.length, 0) }};
+    return {{ html, remaining: Math.max(sorted.length - visible.length, 0), total: sorted.length }};
+}}
+
+function buildExpandButton(kind, remaining, noun) {{
+    if (remaining <= 0) return '';
+    return `<button type="button" class="details-expand" data-expand-kind="${{esc(kind)}}">...and ${{remaining}} more ${{esc(noun)}}</button>`;
 }}
 
 function showEmptyInfo() {{
-    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node or community to inspect it</span>';
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node or cluster to inspect it</span>';
 }}
 
 function showNodeInfo(nodeId) {{
@@ -201,14 +231,14 @@ function showNodeInfo(nodeId) {{
     const neighborNodes = neighborIds
         .map(nid => RAW_NODE_MAP.get(nid) || nodesDS.get(nid))
         .filter(Boolean);
-    const neighborList = buildNodeLinks(neighborNodes, 18);
+        const neighborList = buildNodeLinks(neighborNodes, activeNodeNeighborLimit);
   document.getElementById('info-content').innerHTML = `
         <div class="field"><b>${{esc(label)}}</b></div>
         <div class="field">Type: ${{esc(fileType)}}</div>
-        <div class="field">Community: ${{esc(communityName)}}</div>
+        <div class="field">Cluster: ${{esc(communityName)}}</div>
         <div class="field">Source: ${{esc(sourceFile)}}</div>
         <div class="field">Degree: ${{degree}}</div>
-        ${{neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${{neighborIds.length}})</div><div class="details-list">${{neighborList.html}}</div>${{neighborList.remaining > 0 ? `<div class="field hint">...and ${{neighborList.remaining}} more neighbors</div>` : ''}}` : ''}}
+                ${{neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${{neighborIds.length}})</div><div class="details-list">${{neighborList.html}}</div>${{buildExpandButton('neighbors', neighborList.remaining, 'neighbors')}}` : ''}}
   `;
 }}
 
@@ -218,18 +248,18 @@ function showCommunityInfo(communityId) {{
         showEmptyInfo();
         return;
     }}
-    const communityName = communityNodes[0].community_name || `Community ${{communityId}}`;
-    const nodeList = buildNodeLinks(communityNodes, 24);
+    const communityName = communityNodes[0].community_name || `Cluster ${{communityId}}`;
+    const nodeList = buildNodeLinks(communityNodes, activeClusterNodeLimit);
     const strongestNode = sortNodes(communityNodes)[0];
     document.getElementById('info-content').innerHTML = `
         <div class="field"><b>${{esc(communityName)}}</b></div>
-        <div class="field">Community ID: ${{communityId}}</div>
+        <div class="field">Cluster ID: ${{communityId}}</div>
         <div class="field">Nodes: ${{communityNodes.length}}</div>
         <div class="field">Top node: ${{esc(strongestNode ? strongestNode.label : '-')}}</div>
         <div class="field hint" style="margin-top:8px">Click a node below to drill into it.</div>
-        <div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Community nodes</div>
+        <div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Cluster nodes</div>
         <div class="details-list">${{nodeList.html}}</div>
-        ${{nodeList.remaining > 0 ? `<div class="field hint">...and ${{nodeList.remaining}} more nodes</div>` : ''}}
+        ${{buildExpandButton('cluster-nodes', nodeList.remaining, 'nodes')}}
     `;
 }}
 
@@ -261,6 +291,8 @@ function applySelectionState() {{
 function clearSelection(options = {{}}) {{
     activeNodeId = null;
     activeCommunityId = null;
+    activeNodeNeighborLimit = DEFAULT_NODE_NEIGHBOR_LIMIT;
+    activeClusterNodeLimit = DEFAULT_CLUSTER_NODE_LIMIT;
     applySelectionState();
     network.unselectAll();
     showEmptyInfo();
@@ -273,6 +305,7 @@ function selectNode(nodeId, options = {{}}) {{
     if (!RAW_NODE_MAP.has(nodeId)) return;
     activeNodeId = nodeId;
     activeCommunityId = null;
+    activeNodeNeighborLimit = DEFAULT_NODE_NEIGHBOR_LIMIT;
     applySelectionState();
     network.selectNodes([nodeId]);
     showNodeInfo(nodeId);
@@ -290,6 +323,7 @@ function selectCommunity(communityId, options = {{}}) {{
     }}
     activeCommunityId = communityId;
     activeNodeId = null;
+    activeClusterNodeLimit = DEFAULT_CLUSTER_NODE_LIMIT;
     applySelectionState();
     network.unselectAll();
     showCommunityInfo(communityId);
@@ -304,10 +338,32 @@ function focusNode(nodeId) {{
 
 document.getElementById('info-content').addEventListener('click', event => {{
     const nodeLink = event.target.closest('.neighbor-link');
-    if (!nodeLink) return;
-    const nodeId = nodeLink.getAttribute('data-node-id');
-    if (!nodeId) return;
-    focusNode(nodeId);
+    if (nodeLink) {{
+        const nodeId = nodeLink.getAttribute('data-node-id');
+        if (!nodeId) return;
+        focusNode(nodeId);
+        return;
+    }}
+    const expandButton = event.target.closest('.details-expand');
+    if (!expandButton) return;
+    const expandKind = expandButton.getAttribute('data-expand-kind');
+    if (expandKind === 'neighbors' && activeNodeId !== null) {{
+        activeNodeNeighborLimit = Number.MAX_SAFE_INTEGER;
+        showNodeInfo(activeNodeId);
+    }} else if (expandKind === 'cluster-nodes' && activeCommunityId !== null) {{
+        activeClusterNodeLimit = Number.MAX_SAFE_INTEGER;
+        showCommunityInfo(activeCommunityId);
+    }}
+}});
+
+document.getElementById('sidebar').addEventListener('click', event => {{
+    const toggle = event.target.closest('.section-toggle');
+    if (!toggle) return;
+    const sectionId = toggle.getAttribute('data-section-id');
+    if (!sectionId) return;
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    setSectionCollapsed(sectionId, !section.classList.contains('collapsed'));
 }});
 
 // Track hovered node — hover detection is more reliable than click params
@@ -504,7 +560,7 @@ def to_html(
             "font": {"size": font_size, "color": "#ffffff"},
             "title": _html.escape(label),
             "community": cid,
-            "community_name": sanitize_label((community_labels or {}).get(cid, f"Community {cid}")),
+            "community_name": sanitize_label((community_labels or {}).get(cid, f"Cluster {cid}")),
             "source_file": sanitize_label(data.get("source_file", "")),
             "file_type": data.get("file_type", ""),
             "degree": deg,
@@ -530,7 +586,7 @@ def to_html(
     legend_data = []
     for cid in sorted((community_labels or {}).keys()):
         color = COMMUNITY_COLORS[cid % len(COMMUNITY_COLORS)]
-        lbl = sanitize_label((community_labels or {}).get(cid, f"Community {cid}"))
+        lbl = sanitize_label((community_labels or {}).get(cid, f"Cluster {cid}"))
         n = len(communities.get(cid, []))
         legend_data.append({"cid": cid, "color": color, "label": lbl, "count": n})
 
@@ -543,7 +599,7 @@ def to_html(
     legend_json = _js_safe(legend_data)
     hyperedges_json = _js_safe(getattr(G, "graph", {}).get("hyperedges", []))
     title = _html.escape(sanitize_label(str(output_path)))
-    stats = f"{G.number_of_nodes()} nodes &middot; {G.number_of_edges()} edges &middot; {len(communities)} communities"
+    stats = f"{G.number_of_nodes()} nodes &middot; {G.number_of_edges()} edges &middot; {len(communities)} clusters"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -561,12 +617,22 @@ def to_html(
     <div id="search-results"></div>
   </div>
   <div id="info-panel">
-        <h3>Details</h3>
-        <div id="info-content"><span class="empty">Click a node or community to inspect it</span></div>
+        <div class="section-header">
+            <div class="section-title">Details</div>
+            <button type="button" class="section-toggle" data-section-id="info-panel" aria-expanded="true">Hide</button>
+        </div>
+        <div class="section-body">
+            <div id="info-content"><span class="empty">Click a node or cluster to inspect it</span></div>
+        </div>
   </div>
   <div id="legend-wrap">
-    <h3>Communities</h3>
-    <div id="legend"></div>
+        <div class="section-header">
+            <div class="section-title">Clusters</div>
+            <button type="button" class="section-toggle" data-section-id="legend-wrap" aria-expanded="true">Hide</button>
+        </div>
+        <div class="section-body">
+            <div id="legend"></div>
+        </div>
   </div>
   <div id="stats">{stats}</div>
 </div>
@@ -590,7 +656,7 @@ def to_obsidian(
     cohesion: dict[int, float] | None = None,
 ) -> int:
     """Export graph as an Obsidian vault - one .md file per node with [[wikilinks]],
-    plus one _COMMUNITY_name.md overview note per community (sorted to top by underscore prefix).
+    plus one _CLUSTER_name.md overview note per cluster (sorted to top by underscore prefix).
 
     Open the output directory as a vault in Obsidian to get an interactive
     graph view with community colors and full-text search over node metadata.
@@ -635,9 +701,9 @@ def to_obsidian(
         label = data.get("label", node_id)
         cid = node_community.get(node_id)
         community_name = (
-            community_labels.get(cid, f"Community {cid}")
+            community_labels.get(cid, f"Cluster {cid}")
             if community_labels and cid is not None
-            else f"Community {cid}"
+            else f"Cluster {cid}"
         )
 
         # Build tags for this node
@@ -645,7 +711,7 @@ def to_obsidian(
         ftype_tag = _FTYPE_TAG.get(ftype, f"tracely360/{ftype}" if ftype else "tracely360/document")
         dom_conf = _dominant_confidence(node_id)
         conf_tag = f"tracely360/{dom_conf}"
-        comm_tag = f"community/{community_name.replace(' ', '_')}"
+        comm_tag = f"cluster/{community_name.replace(' ', '_')}"
         node_tags = [ftype_tag, conf_tag, comm_tag]
 
         lines: list[str] = []
@@ -655,7 +721,7 @@ def to_obsidian(
             "---",
             f'source_file: "{data.get("source_file", "")}"',
             f'type: "{ftype}"',
-            f'community: "{community_name}"',
+            f'cluster: "{community_name}"',
         ]
         if data.get("source_location"):
             lines.append(f'location: "{data["source_location"]}"')
@@ -684,8 +750,8 @@ def to_obsidian(
         fname = node_filename[node_id] + ".md"
         (out / fname).write_text("\n".join(lines), encoding="utf-8")
 
-    # Write one _COMMUNITY_name.md overview note per community
-    # Build inter-community edge counts for "Connections to other communities"
+    # Write one _CLUSTER_name.md overview note per cluster
+    # Build inter-community edge counts for "Connections to other clusters"
     inter_community_edges: dict[int, dict[int, int]] = {}
     for cid in communities:
         inter_community_edges[cid] = {}
@@ -710,9 +776,9 @@ def to_obsidian(
     community_notes_written = 0
     for cid, members in communities.items():
         community_name = (
-            community_labels.get(cid, f"Community {cid}")
+            community_labels.get(cid, f"Cluster {cid}")
             if community_labels and cid is not None
-            else f"Community {cid}"
+            else f"Cluster {cid}"
         )
         n_members = len(members)
         coh_value = cohesion.get(cid) if cohesion else None
@@ -721,7 +787,7 @@ def to_obsidian(
 
         # YAML frontmatter
         lines.append("---")
-        lines.append("type: community")
+        lines.append("type: cluster")
         if coh_value is not None:
             lines.append(f"cohesion: {coh_value:.2f}")
         lines.append(f"members: {n_members}")
@@ -761,23 +827,23 @@ def to_obsidian(
         lines.append("## Live Query (requires Dataview plugin)")
         lines.append("")
         lines.append("```dataview")
-        lines.append(f"TABLE source_file, type FROM #community/{comm_tag_name}")
+        lines.append(f"TABLE source_file, type FROM #cluster/{comm_tag_name}")
         lines.append("SORT file.name ASC")
         lines.append("```")
         lines.append("")
 
-        # Connections to other communities
+        # Connections to other clusters
         cross = inter_community_edges.get(cid, {})
         if cross:
-            lines.append("## Connections to other communities")
+            lines.append("## Connections to other clusters")
             for other_cid, edge_count in sorted(cross.items(), key=lambda x: -x[1]):
                 other_name = (
-                    community_labels.get(other_cid, f"Community {other_cid}")
+                    community_labels.get(other_cid, f"Cluster {other_cid}")
                     if community_labels and other_cid is not None
-                    else f"Community {other_cid}"
+                    else f"Cluster {other_cid}"
                 )
                 other_safe = safe_note_name(other_name)
-                lines.append(f"- {edge_count} edge{'s' if edge_count != 1 else ''} to [[_COMMUNITY_{other_safe}]]")
+                lines.append(f"- {edge_count} edge{'s' if edge_count != 1 else ''} to [[_CLUSTER_{other_safe}]]")
             lines.append("")
 
         # Top bridge nodes - highest degree nodes that connect to other communities
@@ -794,21 +860,21 @@ def to_obsidian(
                 node_label = node_filename[node_id]
                 lines.append(
                     f"- [[{node_label}]] - degree {degree}, connects to {reach} "
-                    f"{'community' if reach == 1 else 'communities'}"
+                    f"{'cluster' if reach == 1 else 'clusters'}"
                 )
 
         community_safe = safe_note_name(community_name)
-        fname = f"_COMMUNITY_{community_safe}.md"
+        fname = f"_CLUSTER_{community_safe}.md"
         (out / fname).write_text("\n".join(lines), encoding="utf-8")
         community_notes_written += 1
 
-    # Improvement 4: write .obsidian/graph.json to color nodes by community in graph view
+    # Improvement 4: write .obsidian/graph.json to color nodes by cluster in graph view
     obsidian_dir = out / ".obsidian"
     obsidian_dir.mkdir(exist_ok=True)
     graph_config = {
         "colorGroups": [
             {
-                "query": f"tag:#community/{label.replace(' ', '_')}",
+                "query": f"tag:#cluster/{label.replace(' ', '_')}",
                 "color": {"a": 1, "rgb": int(COMMUNITY_COLORS[cid % len(COMMUNITY_COLORS)].lstrip('#'), 16)}
             }
             for cid, label in sorted((community_labels or {}).items())
@@ -913,9 +979,9 @@ def to_canvas(
     for idx, cid in enumerate(sorted_cids):
         members = communities[cid]
         community_name = (
-            community_labels.get(cid, f"Community {cid}")
+            community_labels.get(cid, f"Cluster {cid}")
             if community_labels and cid is not None
-            else f"Community {cid}"
+            else f"Cluster {cid}"
         )
         gx, gy, gw, gh = group_layout[cid]
         canvas_color = CANVAS_COLORS[idx % len(CANVAS_COLORS)]

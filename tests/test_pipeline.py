@@ -64,7 +64,7 @@ def run_pipeline(tmp_path: Path) -> dict:
     tokens = {"input": 0, "output": 0}
     report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, str(FIXTURES), suggested_questions=questions)
     assert "God Nodes" in report
-    assert "Communities" in report
+    assert "Clusters" in report
     assert len(report) > 100
 
     # Step 7: export - JSON

@@ -1257,7 +1257,7 @@ def main() -> None:
         cohesion = score_all(G, communities)
         gods = god_nodes(G)
         surprises = surprising_connections(G, communities)
-        labels = {cid: f"Community {cid}" for cid in communities}
+        labels = {cid: f"Cluster {cid}" for cid in communities}
         questions = suggest_questions(G, communities, labels)
         tokens = {"input": 0, "output": 0}
         report = generate(G, communities, cohesion, labels, gods, surprises,
@@ -1267,7 +1267,7 @@ def main() -> None:
         (out / "GRAPH_REPORT.md").write_text(report, encoding="utf-8")
         to_json(G, communities, str(out / "graph.json"))
         to_html(G, communities, str(out / "graph.html"), community_labels=labels or None)
-        print(f"Done — {len(communities)} communities. GRAPH_REPORT.md, graph.json and graph.html updated.")
+        print(f"Done — {len(communities)} clusters. GRAPH_REPORT.md, graph.json and graph.html updated.")
 
     elif cmd == "update":
         watch_path = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(".")

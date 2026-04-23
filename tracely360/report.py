@@ -46,20 +46,20 @@ def generate(
     lines += [
         "",
         "## Summary",
-        f"- {G.number_of_nodes()} nodes · {G.number_of_edges()} edges · {len(communities)} communities detected",
+        f"- {G.number_of_nodes()} nodes · {G.number_of_edges()} edges · {len(communities)} clusters detected",
         f"- Extraction: {ext_pct}% EXTRACTED · {inf_pct}% INFERRED · {amb_pct}% AMBIGUOUS"
         + (f" · INFERRED: {len(inf_edges)} edges (avg confidence: {inf_avg})" if inf_avg is not None else ""),
         f"- Token cost: {token_cost.get('input', 0):,} input · {token_cost.get('output', 0):,} output",
     ]
 
-    # Community hub navigation - links to _COMMUNITY_*.md files in the Obsidian vault.
+    # Cluster hub navigation - links to _CLUSTER_*.md files in the Obsidian vault.
     # Without these, GRAPH_REPORT.md is a dead-end and the vault splits into disconnected components.
     if communities:
-        lines += ["", "## Community Hubs (Navigation)"]
+        lines += ["", "## Cluster Hubs (Navigation)"]
         for cid in communities:
-            label = community_labels.get(cid, f"Community {cid}")
+            label = community_labels.get(cid, f"Cluster {cid}")
             safe = safe_note_name(label)
-            lines.append(f"- [[_COMMUNITY_{safe}|{label}]]")
+            lines.append(f"- [[_CLUSTER_{safe}|{label}]]")
 
     lines += [
         "",
@@ -98,10 +98,10 @@ def generate(
             conf_tag = f"{conf} {cscore:.2f}" if cscore is not None else conf
             lines.append(f"- **{h.get('label', h.get('id', ''))}** — {node_labels} [{conf_tag}]")
 
-    lines += ["", "## Communities"]
+    lines += ["", "## Clusters"]
     from .analyze import _is_file_node as _ifn
     for cid, nodes in communities.items():
-        label = community_labels.get(cid, f"Community {cid}")
+        label = community_labels.get(cid, f"Cluster {cid}")
         score = cohesion_scores.get(cid, 0.0)
         # Filter method/function stubs from display - they're structural noise
         real_nodes = [n for n in nodes if not _ifn(G, n)]
@@ -109,7 +109,7 @@ def generate(
         suffix = f" (+{len(real_nodes)-8} more)" if len(real_nodes) > 8 else ""
         lines += [
             "",
-            f"### Community {cid} - \"{label}\"",
+            f"### Cluster {cid} - \"{label}\"",
             f"Cohesion: {score}",
             f"Nodes ({len(real_nodes)}): {', '.join(display)}{suffix}",
         ]
@@ -146,9 +146,9 @@ def generate(
             lines.append("  These have ≤1 connection - possible missing edges or undocumented components.")
         if thin_communities:
             for cid, nodes in thin_communities.items():
-                label = community_labels.get(cid, f"Community {cid}")
+                label = community_labels.get(cid, f"Cluster {cid}")
                 node_labels = [G.nodes[n].get("label", n) for n in nodes]
-                lines.append(f"- **Thin community `{label}`** ({len(nodes)} nodes): {', '.join(f'`{l}`' for l in node_labels)}")
+                lines.append(f"- **Thin cluster `{label}`** ({len(nodes)} nodes): {', '.join(f'`{l}`' for l in node_labels)}")
                 lines.append("  Too small to be a meaningful cluster - may be noise or needs more connections extracted.")
         if amb_pct > 20:
             lines.append(f"- **High ambiguity: {amb_pct}% of edges are AMBIGUOUS.** Review the Ambiguous Edges section above.")

@@ -39,10 +39,10 @@ def test_report_contains_surprising_connections():
     report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, "./project")
     assert "## Surprising Connections" in report
 
-def test_report_contains_communities():
+def test_report_contains_clusters():
     G, communities, cohesion, labels, gods, surprises, detection, tokens = make_inputs()
     report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, "./project")
-    assert "## Communities" in report
+    assert "## Clusters" in report
 
 def test_report_contains_ambiguous_section():
     G, communities, cohesion, labels, gods, surprises, detection, tokens = make_inputs()

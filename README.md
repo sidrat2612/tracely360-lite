@@ -75,8 +75,8 @@ All results land in `tracely360-out/`:
 
 | File | Description |
 |------|-------------|
-| `GRAPH_REPORT.md` | One-page audit: god nodes, communities, surprising connections, API endpoints, knowledge gaps |
-| `graph.json` | Persistent queryable graph (node-link format with community assignments) |
+| `GRAPH_REPORT.md` | One-page audit: god nodes, clusters, surprising connections, API endpoints, knowledge gaps |
+| `graph.json` | Persistent queryable graph (node-link format with cluster assignments in the `community` field) |
 | `graph.html` | Interactive vis.js visualization with search, filtering, and node inspection |
 | `wiki/` | Obsidian-compatible markdown vault with bidirectional wikilinks |
 | `cache/` | Per-file extraction cache (SHA256-keyed) |
@@ -143,7 +143,7 @@ detect() → extract() → build_from_json() → cluster() + score_all()
 1. **Detect** — scan corpus, classify files (code, document, paper, image, video)
 2. **Extract** — two-pass AST extraction: per-file structure, then cross-file import resolution. Endpoint pass discovers API routes.
 3. **Build** — assemble NetworkX graph from flat node/edge payloads
-4. **Cluster** — Leiden community detection (topology-based, no embeddings)
+4. **Cluster** — Leiden graph clustering (topology-based, no embeddings)
 5. **Analyze** — god nodes, surprising connections, knowledge gaps
 6. **Report** — render `GRAPH_REPORT.md` with full audit trail
 7. **Export** — interactive HTML, persistent JSON, Obsidian wiki
