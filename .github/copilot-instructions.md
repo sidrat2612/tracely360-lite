@@ -88,3 +88,9 @@ Source of truth lives in [Traciphy/docs/](Traciphy/docs/). Read the relevant can
 Roadmap + current delivery state: [Traciphy/docs/REMAINING_ROADMAP.md](Traciphy/docs/REMAINING_ROADMAP.md).
 
 If the code and the docs disagree, fix the code or update the canonical doc explicitly in the same PR.
+
+## tracely360
+
+Before answering architecture or codebase questions, read `tracely360-out/GRAPH_REPORT.md` if it exists.
+If `tracely360-out/wiki/index.md` exists, navigate it for deep questions.
+Type `/tracely360` in Copilot Chat to build or update the knowledge graph.
