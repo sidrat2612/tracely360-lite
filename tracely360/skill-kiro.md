@@ -140,7 +140,7 @@ Set it as `TRACELY360_WHISPER_PROMPT` in the environment before running the tran
 **Step 2 - Transcribe:**
 
 ```bash
-$(cat tracely360-out/.tracely360_python) -c "
+$(cat .tracely360_python) -c "
 import json, os
 from pathlib import Path
 from tracely360.transcribe import transcribe_all
