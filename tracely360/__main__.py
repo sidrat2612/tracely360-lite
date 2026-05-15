@@ -1,5 +1,7 @@
 """tracely360 CLI - `tracely360 install` sets up the Claude Code skill."""
 from __future__ import annotations
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 import platform
 import re
@@ -222,6 +224,93 @@ _GEMINI_HOOK = {
         }
     ],
 }
+
+
+def _upsert_markdown_section(target: Path, marker: str, section: str) -> None:
+    """Create or replace a managed markdown section without duplicating it."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        target.write_text(section, encoding="utf-8")
+        return
+
+    content = target.read_text(encoding="utf-8")
+    if marker not in content:
+        target.write_text(content.rstrip() + "\n\n" + section, encoding="utf-8")
+        return
+
+    cleaned = re.sub(
+        rf"\n*{re.escape(marker)}\n.*?(?=\n## |\Z)",
+        "",
+        content,
+        flags=re.DOTALL,
+    ).rstrip()
+    updated = section if not cleaned else cleaned + "\n\n" + section
+    if content.rstrip() != updated.rstrip():
+        target.write_text(updated, encoding="utf-8")
+
+
+def _write_if_changed(target: Path, content: str) -> None:
+    """Write a dedicated config file only when the content changed."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists() and target.read_text(encoding="utf-8") == content:
+        return
+    target.write_text(content, encoding="utf-8")
+
+
+def _run_silently(callback, *args) -> None:
+    """Reuse installer helpers without surfacing their progress messages in slash skills."""
+    with redirect_stdout(StringIO()):
+        callback(*args)
+
+
+def ensure_platform_context(platform: str, project_dir: Path | None = None) -> None:
+    """Silently ensure the current project has the platform's always-on tracely360 context."""
+    project_dir = project_dir or Path(".")
+    platform_name = platform.lower()
+
+    if platform_name == "copilot":
+        platform_name = "vscode"
+
+    if platform_name == "vscode":
+        target = project_dir / ".github" / "copilot-instructions.md"
+        _upsert_markdown_section(target, _VSCODE_INSTRUCTIONS_MARKER, _VSCODE_INSTRUCTIONS_SECTION)
+        return
+
+    if platform_name in {"aider", "codex", "opencode", "claw", "droid", "trae", "trae-cn", "hermes"}:
+        target = project_dir / "AGENTS.md"
+        _upsert_markdown_section(target, _AGENTS_MD_MARKER, _AGENTS_MD_SECTION)
+        if platform_name == "codex":
+            _run_silently(_install_codex_hook, project_dir)
+        elif platform_name == "opencode":
+            _run_silently(_install_opencode_plugin, project_dir)
+        return
+
+    if platform_name in {"claude", "windows"}:
+        target = project_dir / "CLAUDE.md"
+        _upsert_markdown_section(target, _CLAUDE_MD_MARKER, _CLAUDE_MD_SECTION)
+        _run_silently(_install_claude_hook, project_dir)
+        return
+
+    if platform_name == "gemini":
+        target = project_dir / "GEMINI.md"
+        _upsert_markdown_section(target, _GEMINI_MD_MARKER, _GEMINI_MD_SECTION)
+        _run_silently(_install_gemini_hook, project_dir)
+        return
+
+    if platform_name == "cursor":
+        _write_if_changed(project_dir / _CURSOR_RULE_PATH, _CURSOR_RULE)
+        return
+
+    if platform_name == "kiro":
+        _write_if_changed(project_dir / ".kiro" / "steering" / "tracely360.md", _KIRO_STEERING)
+        return
+
+    if platform_name == "antigravity":
+        _write_if_changed(project_dir / _ANTIGRAVITY_RULES_PATH, _ANTIGRAVITY_RULES)
+        _write_if_changed(project_dir / _ANTIGRAVITY_WORKFLOW_PATH, _ANTIGRAVITY_WORKFLOW)
+        return
+
+    raise ValueError(f"unknown platform: {platform}")
 
 
 def gemini_install(project_dir: Path | None = None) -> None:

@@ -70,12 +70,23 @@ else
 fi
 "$PYTHON" -c "import tracely360" 2>/dev/null || "$PYTHON" -m pip install tracely360 -q 2>/dev/null || "$PYTHON" -m pip install tracely360 -q --break-system-packages 2>&1 | tail -3
 # Write interpreter path for all subsequent steps
-"$PYTHON" -c "import sys; open('tracely360-out/.tracely360_python', 'w').write(sys.executable)"
+mkdir -p tracely360-out
+"$PYTHON" -c "import sys; from pathlib import Path; Path('.tracely360_python').write_text(sys.executable); Path('tracely360-out/.tracely360_python').write_text(sys.executable)"
 ```
 
 If the import succeeds, print nothing and move straight to Step 2.
 
 **In every subsequent bash block, replace `python3` with `$(cat .tracely360_python)` to use the correct interpreter.**
+
+### Step 1.5 - Bootstrap Trae project instructions
+
+```bash
+$(cat .tracely360_python) -c "
+from pathlib import Path
+from tracely360.__main__ import ensure_platform_context
+ensure_platform_context('trae', Path('.'))
+"
+```
 
 ### Step 2 - Detect files
 

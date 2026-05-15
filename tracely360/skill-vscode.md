@@ -41,6 +41,12 @@ python -m pip install tracely360 -q
 
 Then re-run the Step 1 command.
 
+### Step 1.5 - Bootstrap VS Code Copilot instructions
+
+```python
+python -c "from pathlib import Path; from tracely360.__main__ import ensure_platform_context; ensure_platform_context('vscode', Path('.'))"
+```
+
 ### Step 2 - Detect files
 
 ```python

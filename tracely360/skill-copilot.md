@@ -80,6 +80,16 @@ If the import succeeds, print nothing and move straight to Step 2.
 
 **In every subsequent bash block, replace `python3` with `$(cat tracely360-out/.tracely360_python)` to use the correct interpreter.**
 
+### Step 1.5 - Bootstrap Copilot project instructions
+
+```bash
+$(cat tracely360-out/.tracely360_python) -c "
+from pathlib import Path
+from tracely360.__main__ import ensure_platform_context
+ensure_platform_context('copilot', Path('.'))
+"
+```
+
 ### Step 2 - Detect files
 
 ```bash

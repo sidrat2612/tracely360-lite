@@ -65,10 +65,17 @@ Follow these steps in order. Do not skip steps.
 python -c "import tracely360" 2>$null
 if ($LASTEXITCODE -ne 0) { pip install tracely360 -q 2>&1 | Select-Object -Last 3 }
 # Write interpreter path for all subsequent steps
-python -c "import sys; open('.tracely360_python', 'w').write(sys.executable)"
+python -c "import sys; from pathlib import Path; Path('tracely360-out').mkdir(exist_ok=True); Path('.tracely360_python').write_text(sys.executable); Path('tracely360-out/.tracely360_python').write_text(sys.executable)"
 ```
 
 If the import succeeds, print nothing and move straight to Step 2.
+
+### Step 1.5 - Bootstrap Claude project instructions
+
+```powershell
+$PYTHON = Get-Content .tracely360_python -Raw
+& $PYTHON -c "from pathlib import Path; from tracely360.__main__ import ensure_platform_context; ensure_platform_context('windows', Path('.'))"
+```
 
 ### Step 2 - Detect files
 
