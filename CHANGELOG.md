@@ -4,6 +4,8 @@ Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360-l
 
 ## Unreleased
 
+## 0.4.28 (2026-05-15)
+
 - Add: deterministic API endpoint extraction for Flask/FastAPI/Django, Express/NestJS/Next.js, Spring, Laravel, Rails, Gin/Echo/Chi, and ASP.NET; endpoint nodes carry `method`, `path`, and `framework`; handler links use `exposes_endpoint`
 - Add: `graph.html` highlights endpoint nodes as stars; `GRAPH_REPORT.md` includes an API Endpoints section
 - Add: endpoint fixtures, extraction tests, and end-to-end pipeline coverage for extract → build → cluster → analyze → report → export
