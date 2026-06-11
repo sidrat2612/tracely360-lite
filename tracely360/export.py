@@ -71,7 +71,7 @@ const hyperedges = {hyperedges_json};
 // Draw node positions raw — no manual pan/zoom/DPR math needed.
 network.on('afterDrawing', function(ctx) {{
     hyperedges.forEach(h => {{
-        const positions = h.nodes
+        const positions = (h.members || h.nodes || [])
             .map(nid => network.getPositions([nid])[nid])
             .filter(p => p !== undefined);
         if (positions.length < 2) return;
@@ -584,7 +584,7 @@ def to_html(
 
     # Build community legend data
     legend_data = []
-    for cid in sorted((community_labels or {}).keys()):
+    for cid in sorted(communities.keys()):
         color = COMMUNITY_COLORS[cid % len(COMMUNITY_COLORS)]
         lbl = sanitize_label((community_labels or {}).get(cid, f"Cluster {cid}"))
         n = len(communities.get(cid, []))

@@ -236,9 +236,11 @@ from pathlib import Path
 extraction = json.loads(Path('tracely360-out/.tracely360_extract.json').read_text())
 G = build_from_json(extraction)
 communities = cluster(G)
+labels_raw = json.loads(Path('tracely360-out/.tracely360_labels.json').read_text()) if Path('tracely360-out/.tracely360_labels.json').exists() else {}
+labels = {int(k): v for k, v in labels_raw.items()}
 
 try:
-    to_html(G, communities, 'tracely360-out/graph.html')
+    to_html(G, communities, 'tracely360-out/graph.html', community_labels=labels or None)
     print('graph.html written')
 except ValueError as e:
     print(f'Visualization skipped: {e}')

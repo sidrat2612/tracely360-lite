@@ -13,7 +13,7 @@ build/
 *.so
 *.egg
 .tracely360/
-tracely360-out/
+tracely360-out/cache
 .tracely360_*.json
 worked/
 .DS_Store
