@@ -5,7 +5,7 @@ import pytest
 from tracely360.extract import (
     extract_java, extract_c, extract_cpp, extract_ruby,
     extract_csharp, extract_kotlin, extract_scala, extract_php,
-    extract_swift, extract_go, extract_julia, extract_sql,
+    extract_swift, extract_go, extract_julia, extract_sql, extract_postgresql,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -649,3 +649,40 @@ $$;
 
     assert ("create_order()", "later_total()") in call_labels
     assert ("create_order()", "helper_after_proc()") not in call_labels
+
+
+def test_postgresql_finds_schema_qualified_routines():
+    r = extract_sql(FIXTURES / "sample_postgresql.sql")
+    labels = _labels(r)
+    assert any("public.get_order_total" in label for label in labels)
+    assert any("public.create_order" in label for label in labels)
+    assert any("orders_after_insert" in label for label in labels)
+
+
+def test_postgresql_procedure_calls_function():
+    r = extract_sql(FIXTURES / "sample_postgresql.sql")
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    call_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "calls"
+    }
+    assert ("public.create_order()", "public.get_order_total()") in call_labels
+
+
+def test_postgresql_tracks_table_references():
+    r = extract_sql(FIXTURES / "sample_postgresql.sql")
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    ref_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "references_table"
+    }
+    assert ("public.get_order_total()", "public.orders") in ref_labels
+    assert ("public.create_order()", "public.orders") in ref_labels
+
+def test_extract_postgresql_direct():
+    r = extract_postgresql(FIXTURES / "sample_postgresql.sql")
+    labels = _labels(r)
+    assert any("public.get_order_total" in label for label in labels)
+    assert any("public.create_order" in label for label in labels)

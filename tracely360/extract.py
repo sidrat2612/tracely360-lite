@@ -1974,6 +1974,200 @@ def extract_julia(path: Path) -> dict:
 
 # ── SQL extractor (custom walk) ───────────────────────────────────────────────
 
+_POSTGRES_SQL_MARKERS = (
+    "language plpgsql",
+    "create or replace function",
+    "create or replace procedure",
+    "perform ",
+    "returns trigger",
+    "execute function",
+)
+
+
+def _looks_like_postgresql_sql_text(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in _POSTGRES_SQL_MARKERS)
+
+
+def extract_postgresql(path: Path) -> dict:
+    """Extract PostgreSQL objects and references using tree-sitter-postgres."""
+    try:
+        import tree_sitter_postgres as tspostgres
+        from tree_sitter import Language, Parser
+    except ImportError:
+        return {"nodes": [], "edges": [], "error": "tree-sitter-postgres not installed"}
+
+    try:
+        language = Language(tspostgres.language())
+        parser = Parser(language)
+        source = path.read_bytes()
+        tree = parser.parse(source)
+        root = tree.root_node
+    except Exception as exc:
+        return {"nodes": [], "edges": [], "error": str(exc)}
+
+    stem = path.stem
+    str_path = str(path)
+    nodes: list[dict] = []
+    edges: list[dict] = []
+    seen_ids: set[str] = set()
+    relation_names: dict[str, str] = {}
+    routine_names: dict[str, str] = {}
+    deferred_bodies: list[tuple[str, str, int]] = []
+
+    def add_node(nid: str, label: str, line: int) -> None:
+        if nid not in seen_ids:
+            seen_ids.add(nid)
+            nodes.append({
+                "id": nid,
+                "label": label,
+                "file_type": "code",
+                "source_file": str_path,
+                "source_location": f"L{line}",
+            })
+
+    def add_edge(src: str, tgt: str, relation: str, line: int,
+                 confidence: str = "EXTRACTED", weight: float = 1.0) -> None:
+        edges.append({
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": confidence,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": weight,
+        })
+
+    def node_text(node) -> str | None:
+        if node is None:
+            return None
+        return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+
+    def first_child(node, type_name: str):
+        return next((child for child in node.children if child.type == type_name), None)
+
+    def first_descendant(node, type_names: set[str]):
+        for child in node.children:
+            if child.type in type_names:
+                return child
+            found = first_descendant(child, type_names)
+            if found is not None:
+                return found
+        return None
+
+    def extract_dollar_body(node) -> str | None:
+        raw = node_text(node)
+        if not raw:
+            return None
+        match = re.match(r"^(\$[^$]*\$)(.*)\1$", raw, re.DOTALL)
+        if match:
+            return match.group(2).strip()
+        return raw.strip()
+
+    def register_node(name: str, line: int, *, is_routine: bool = False,
+                      is_relation: bool = False, suffix: str = "") -> str:
+        nid = _make_id(stem, name)
+        is_new = nid not in seen_ids
+        add_node(nid, f"{name}{suffix}", line)
+        if is_new:
+            add_edge(file_nid, nid, "contains", line)
+        if is_routine:
+            routine_names[name] = nid
+        if is_relation:
+            relation_names[name] = nid
+        return nid
+
+    def scan_body_text(owner_nid: str, body_text: str, line: int) -> None:
+        for relation_name, target_nid in relation_names.items():
+            if target_nid == owner_nid:
+                continue
+            if re.search(rf"(?<![\w.]){re.escape(relation_name)}(?![\w.])", body_text, re.IGNORECASE):
+                add_edge(owner_nid, target_nid, "references_table", line,
+                         confidence="EXTRACTED", weight=0.8)
+
+        for routine_name, target_nid in routine_names.items():
+            if target_nid == owner_nid:
+                continue
+            if re.search(rf"(?<![\w.]){re.escape(routine_name)}\s*\(", body_text, re.IGNORECASE):
+                add_edge(owner_nid, target_nid, "calls", line, confidence="EXTRACTED")
+
+    file_nid = _make_id(str(path))
+    add_node(file_nid, path.name, 1)
+
+    def walk(node) -> None:
+        t = node.type
+        line = node.start_point[0] + 1
+
+        if t in {"source_file", "toplevel_stmt", "stmt"}:
+            for child in node.children:
+                walk(child)
+            return
+
+        if t == "CreateStmt":
+            name_node = first_descendant(node, {"qualified_name"})
+            name = node_text(name_node)
+            if name:
+                register_node(name, line, is_relation=True)
+            return
+
+        if t == "ViewStmt":
+            name_node = first_child(node, "qualified_name")
+            name = node_text(name_node)
+            if name:
+                owner_nid = register_node(name, line, is_relation=True)
+                select_node = first_descendant(node, {"SelectStmt"})
+                select_text = node_text(select_node)
+                if select_text:
+                    deferred_bodies.append((owner_nid, select_text, line))
+            return
+
+        if t == "CreateMatViewStmt":
+            target_node = first_descendant(node, {"qualified_name"})
+            name = node_text(target_node)
+            if name:
+                owner_nid = register_node(name, line, is_relation=True)
+                select_node = first_descendant(node, {"SelectStmt"})
+                select_text = node_text(select_node)
+                if select_text:
+                    deferred_bodies.append((owner_nid, select_text, line))
+            return
+
+        if t == "CreateFunctionStmt":
+            name_node = first_child(node, "func_name")
+            name = node_text(name_node)
+            if name:
+                owner_nid = register_node(name, line, is_routine=True, suffix="()")
+                func_as_node = first_descendant(node, {"func_as"})
+                dollar_node = first_descendant(func_as_node, {"dollar_quoted_string"}) if func_as_node else None
+                body_text = extract_dollar_body(dollar_node) if dollar_node else None
+                if body_text:
+                    deferred_bodies.append((owner_nid, body_text, line))
+            return
+
+        if t == "CreateTrigStmt":
+            name_node = first_child(node, "name")
+            name = node_text(name_node)
+            if name:
+                register_node(name, line)
+            return
+
+        if t == "IndexStmt":
+            name_node = first_descendant(node, {"opt_single_name"})
+            name = node_text(name_node)
+            if name:
+                register_node(name, line)
+            return
+
+        for child in node.children:
+            walk(child)
+
+    walk(root)
+
+    for owner_nid, body_text, line in deferred_bodies:
+        scan_body_text(owner_nid, body_text, line)
+
+    return {"nodes": nodes, "edges": edges}
+
 def extract_sql(path: Path) -> dict:
     """Extract tables, views, functions, procedures, triggers, and indexes from a .sql file.
 
@@ -1985,6 +2179,16 @@ def extract_sql(path: Path) -> dict:
       - ``references_table`` edges when a function/procedure/view body references a table
         or view via object_reference nodes
     """
+    try:
+        source_text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        source_text = ""
+
+    if source_text and _looks_like_postgresql_sql_text(source_text):
+        postgres_result = extract_postgresql(path)
+        if "error" not in postgres_result:
+            return postgres_result
+
     try:
         import tree_sitter_sql as tssql
         from tree_sitter import Language, Parser
@@ -2072,13 +2276,25 @@ def extract_sql(path: Path) -> dict:
         """Recover CREATE FUNCTION/PROCEDURE names from ERROR nodes."""
         node_text = source[node.start_byte:node.end_byte].decode("utf-8", "replace")
         match = re.search(
-            r"CREATE\s+(FUNCTION|PROCEDURE)\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)",
+            r"CREATE\s+(?:OR\s+REPLACE\s+)?(FUNCTION|PROCEDURE)\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)",
             node_text,
             re.IGNORECASE,
         )
         if not match:
             return None
         return match.group(1).upper(), match.group(2)
+
+    def _recover_error_call_name(node) -> str | None:
+        """Recover routine names from unparsed PostgreSQL statements like PERFORM foo()."""
+        node_text = source[node.start_byte:node.end_byte].decode("utf-8", "replace")
+        match = re.search(
+            r"\b(?:PERFORM|CALL|SELECT)\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*\(",
+            node_text,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return match.group(1)
 
     def _register_node(name: str, line: int, *, is_routine: bool = False,
                        is_relation: bool = False, suffix: str = "") -> str:
@@ -2146,6 +2362,14 @@ def extract_sql(path: Path) -> dict:
                     add_edge(owner_nid, tgt_nid, "references_table",
                              node.start_point[0] + 1,
                              confidence="EXTRACTED", weight=0.8)
+
+        elif t == "ERROR":
+            callee = _recover_error_call_name(node)
+            if callee:
+                tgt_nid = _make_id(stem, callee)
+                if tgt_nid in known_routine_nids and tgt_nid != owner_nid:
+                    add_edge(owner_nid, tgt_nid, "calls",
+                             node.start_point[0] + 1, confidence="EXTRACTED")
 
         for child in node.children:
             _walk_body(child, owner_nid, known_relation_nids, known_routine_nids)
@@ -2230,7 +2454,7 @@ def extract_sql(path: Path) -> dict:
                 if active_error_owner and child_text and child_text.strip().startswith("$$"):
                     active_error_owner = None
                     continue
-            if active_error_owner and child.type == "statement":
+            if active_error_owner and child.type in {"statement", "block"}:
                 _queue_body(active_error_owner, [child])
 
     # Second pass: scan bodies for calls and table references

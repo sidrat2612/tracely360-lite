@@ -61,6 +61,7 @@ dependencies = [
     "tree-sitter-scala",
     "tree-sitter-swift",
     "tree-sitter-typescript",
+    "tree-sitter-postgres",
     "tree-sitter-sql",
     "tree-sitter-verilog",
     "tree-sitter-zig",
