@@ -2005,6 +2005,8 @@ def extract_sql(path: Path) -> dict:
     nodes: list[dict] = []
     edges: list[dict] = []
     seen_ids: set[str] = set()
+    routine_nids: set[str] = set()
+    relation_nids: set[str] = set()
 
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
@@ -2066,6 +2068,38 @@ def extract_sql(path: Path) -> dict:
                 return _read_text(child, source)
         return None
 
+    def _extract_error_ddl_name(node) -> tuple[str, str] | None:
+        """Recover CREATE FUNCTION/PROCEDURE names from ERROR nodes."""
+        node_text = source[node.start_byte:node.end_byte].decode("utf-8", "replace")
+        match = re.search(
+            r"CREATE\s+(FUNCTION|PROCEDURE)\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)",
+            node_text,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return match.group(1).upper(), match.group(2)
+
+    def _register_node(name: str, line: int, *, is_routine: bool = False,
+                       is_relation: bool = False, suffix: str = "") -> str:
+        nid = _make_id(stem, name)
+        is_new = nid not in seen_ids
+        add_node(nid, f"{name}{suffix}", line)
+        if is_new:
+            add_edge(file_nid, nid, "contains", line)
+        if is_routine:
+            routine_nids.add(nid)
+        if is_relation:
+            relation_nids.add(nid)
+        return nid
+
+    def _queue_body(owner_nid: str, body_nodes: list) -> None:
+        if body_nodes:
+            _deferred_bodies.append((owner_nid, body_nodes))
+
+    def _body_statement_nodes(node) -> list:
+        return [child for child in node.children if child.type in ("function_body", "procedure_body", "block", "create_query", "statement")]
+
     # ── body scanners ──────────────────────────────────────────────────────────
 
     # DDL node types that define standalone objects we track
@@ -2074,7 +2108,8 @@ def extract_sql(path: Path) -> dict:
         "create_view", "create_materialized_view", "create_trigger", "create_index",
     })
 
-    def _walk_body(node, owner_nid: str, defined_nids: set[str]) -> None:
+    def _walk_body(node, owner_nid: str, known_relation_nids: set[str],
+                   known_routine_nids: set[str]) -> None:
         """Recursively scan a body node for calls and table references."""
         t = node.type
 
@@ -2089,29 +2124,36 @@ def extract_sql(path: Path) -> dict:
                     callee = _object_name(child)
                     if callee:
                         tgt_nid = _make_id(stem, callee)
-                        add_edge(owner_nid, tgt_nid, "calls",
-                                 node.start_point[0] + 1, confidence="EXTRACTED")
+                        if tgt_nid in known_routine_nids and tgt_nid != owner_nid:
+                            add_edge(owner_nid, tgt_nid, "calls",
+                                     node.start_point[0] + 1, confidence="EXTRACTED")
                     break
 
-        elif t == "object_reference":
-            # Table/view reference in FROM / JOIN / etc.
-            name = _object_name(node)
+        elif t == "relation":
+            name = _first_object_ref_name(node)
             if name:
                 tgt_nid = _make_id(stem, name)
-                if tgt_nid != owner_nid and tgt_nid not in defined_nids:
+                if tgt_nid in known_relation_nids and tgt_nid != owner_nid:
+                    add_edge(owner_nid, tgt_nid, "references_table",
+                             node.start_point[0] + 1,
+                             confidence="EXTRACTED", weight=0.8)
+
+        elif t in {"insert", "update", "delete"}:
+            name = _first_object_ref_name(node)
+            if name:
+                tgt_nid = _make_id(stem, name)
+                if tgt_nid in known_relation_nids and tgt_nid != owner_nid:
                     add_edge(owner_nid, tgt_nid, "references_table",
                              node.start_point[0] + 1,
                              confidence="EXTRACTED", weight=0.8)
 
         for child in node.children:
-            _walk_body(child, owner_nid, defined_nids)
+            _walk_body(child, owner_nid, known_relation_nids, known_routine_nids)
 
     # ── top-level DDL walker ───────────────────────────────────────────────────
 
-    # Collect (owner_nid, body_nodes, defined_nids) for second-pass body scanning
-    _deferred_bodies: list[tuple[str, list, set[str]]] = []
-    # Track all DDL-defined node IDs so we can skip self-references
-    _defined_nids: set[str] = set()
+    # Collect (owner_nid, body_nodes) for second-pass body scanning
+    _deferred_bodies: list[tuple[str, list]] = []
 
     def _walk_ddl(node) -> None:
         t = node.type
@@ -2126,93 +2168,75 @@ def extract_sql(path: Path) -> dict:
         if t == "create_function":
             name = _first_object_ref_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, f"{name}()", line)
-                add_edge(file_nid, nid, "contains", line)
-                # Collect body for second pass
-                body_nodes = [c for c in node.children
-                               if c.type in ("function_body", "block")]
-                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+                nid = _register_node(name, line, is_routine=True, suffix="()")
+                _queue_body(nid, [c for c in node.children if c.type in ("function_body", "block")])
 
         elif t == "create_procedure":
             name = _first_object_ref_name(node)
             if name is None:
                 name = _first_identifier_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, f"{name}()", line)
-                add_edge(file_nid, nid, "contains", line)
-                body_nodes = [c for c in node.children
-                               if c.type in ("procedure_body", "block")]
-                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+                nid = _register_node(name, line, is_routine=True, suffix="()")
+                _queue_body(nid, [c for c in node.children if c.type in ("procedure_body", "block")])
 
         elif t == "create_table":
             name = _first_object_ref_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, name, line)
-                add_edge(file_nid, nid, "contains", line)
+                _register_node(name, line, is_relation=True)
 
         elif t in ("create_view", "create_materialized_view"):
             name = _first_object_ref_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, name, line)
-                add_edge(file_nid, nid, "contains", line)
-                body_nodes = [c for c in node.children if c.type == "create_query"]
-                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+                nid = _register_node(name, line, is_relation=True)
+                _queue_body(nid, [c for c in node.children if c.type == "create_query"])
 
         elif t == "create_trigger":
-            # trigger name is first identifier child (not object_reference)
-            name = _first_identifier_name(node)
+            name = _first_object_ref_name(node)
             if name is None:
-                name = _first_object_ref_name(node)
+                name = _first_identifier_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, name, line)
-                add_edge(file_nid, nid, "contains", line)
+                _register_node(name, line)
 
         elif t == "create_index":
             # index name comes from the "column" field or first identifier
             col_field = node.child_by_field_name("column")
             name = _read_text(col_field, source) if col_field else _first_identifier_name(node)
             if name:
-                nid = _make_id(stem, name)
-                _defined_nids.add(nid)
-                add_node(nid, name, line)
-                add_edge(file_nid, nid, "contains", line)
+                _register_node(name, line)
 
         elif t == "ERROR":
-            # Fallback: some grammars (e.g. MySQL-style bodies) fail to parse
-            # CREATE FUNCTION/PROCEDURE as typed nodes; extract via regex.
-            node_text = source[node.start_byte:node.end_byte].decode("utf-8", "replace")
-            for kw, label_suffix in (("PROCEDURE", "()"), ("FUNCTION", "()")):
-                m = re.search(
-                    rf"CREATE\s+{kw}\s+([A-Za-z_]\w*)", node_text, re.IGNORECASE
-                )
-                if m:
-                    err_name = m.group(1)
-                    err_nid = _make_id(stem, err_name)
-                    if err_nid not in seen_ids:
-                        _defined_nids.add(err_nid)
-                        add_node(err_nid, f"{err_name}{label_suffix}", line)
-                        add_edge(file_nid, err_nid, "contains", line)
-                    break
+            recovered = _extract_error_ddl_name(node)
+            if recovered:
+                _, err_name = recovered
+                err_nid = _register_node(err_name, line, is_routine=True, suffix="()")
+                _queue_body(err_nid, _body_statement_nodes(node))
             # Also recurse into ERROR children so nested valid DDL isn't skipped
             for child in node.children:
                 _walk_ddl(child)
 
     _walk_ddl(root)
 
+    if root.type == "program":
+        active_error_owner: str | None = None
+        for child in root.children:
+            if child.type == "ERROR":
+                recovered = _extract_error_ddl_name(child)
+                if recovered:
+                    _, err_name = recovered
+                    active_error_owner = _register_node(err_name, child.start_point[0] + 1,
+                                                        is_routine=True, suffix="()")
+                    continue
+                child_text = _read_text(child, source)
+                if active_error_owner and child_text and child_text.strip().startswith("$$"):
+                    active_error_owner = None
+                    continue
+            if active_error_owner and child.type == "statement":
+                _queue_body(active_error_owner, [child])
+
     # Second pass: scan bodies for calls and table references
-    for owner_nid, body_nodes, defined_set in _deferred_bodies:
+    for owner_nid, body_nodes in _deferred_bodies:
         for body in body_nodes:
-            _walk_body(body, owner_nid, defined_set)
+            _walk_body(body, owner_nid, relation_nids, routine_nids)
 
     return {"nodes": nodes, "edges": edges}
 

@@ -596,10 +596,56 @@ def test_sql_contains_edges():
 
 def test_sql_finds_calls():
     r = extract_sql(FIXTURES / "sample.sql")
-    assert any(e["relation"] == "calls" for e in r["edges"])
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    call_edges = [e for e in r["edges"] if e["relation"] == "calls"]
+    assert call_edges
+    assert any("create_order" in nodes_by_id[e["source"]]["label"] and
+               "get_user_total" in nodes_by_id[e["target"]]["label"]
+               for e in call_edges)
 
 def test_sql_no_dangling_edges():
     r = extract_sql(FIXTURES / "sample.sql")
     node_ids = {n["id"] for n in r["nodes"]}
     for e in r["edges"]:
         assert e["source"] in node_ids, f"Dangling source: {e}"
+        assert e["target"] in node_ids, f"Dangling target: {e}"
+
+def test_sql_error_recovery_tracks_forward_calls_and_resets_owner(tmp_path: Path):
+    sql_path = tmp_path / "error_recovery.sql"
+    sql_path.write_text(
+        """
+CREATE FUNCTION helper_after_proc()
+RETURNS DECIMAL
+LANGUAGE SQL
+AS $$
+    SELECT 1;
+$$;
+
+CREATE PROCEDURE create_order(IN p_total DECIMAL)
+LANGUAGE SQL
+AS $$
+    SELECT later_total();
+$$;
+
+SELECT helper_after_proc();
+
+CREATE FUNCTION later_total()
+RETURNS DECIMAL
+LANGUAGE SQL
+AS $$
+    SELECT 2;
+$$;
+""".strip(),
+        encoding="utf-8",
+    )
+
+    r = extract_sql(sql_path)
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    call_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "calls"
+    }
+
+    assert ("create_order()", "later_total()") in call_labels
+    assert ("create_order()", "helper_after_proc()") not in call_labels
