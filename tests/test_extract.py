@@ -64,7 +64,7 @@ def test_collect_files_from_dir():
                  ".swift", ".lua", ".toc", ".zig", ".ps1", ".ex", ".exs",
                  ".json", ".yaml", ".yml",
                  ".m", ".mm", ".jl", ".jsx", ".mjs", ".vue", ".svelte",
-                 ".dart", ".v", ".sv"}
+                 ".dart", ".v", ".sv", ".sql"}
     assert all(f.suffix in supported for f in files)
     assert len(files) > 0
 

@@ -1972,6 +1972,251 @@ def extract_julia(path: Path) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+# ── SQL extractor (custom walk) ───────────────────────────────────────────────
+
+def extract_sql(path: Path) -> dict:
+    """Extract tables, views, functions, procedures, triggers, and indexes from a .sql file.
+
+    Emits:
+      - Node per DDL object (CREATE TABLE/VIEW/FUNCTION/PROCEDURE/TRIGGER/INDEX)
+      - ``contains`` edges from the file node to each DDL object
+      - ``calls`` edges when an invocation inside a function/procedure body references
+        another named routine
+      - ``references_table`` edges when a function/procedure/view body references a table
+        or view via object_reference nodes
+    """
+    try:
+        import tree_sitter_sql as tssql
+        from tree_sitter import Language, Parser
+    except ImportError:
+        return {"nodes": [], "edges": [], "error": "tree-sitter-sql not installed"}
+
+    try:
+        language = Language(tssql.language())
+        parser = Parser(language)
+        source = path.read_bytes()
+        tree = parser.parse(source)
+        root = tree.root_node
+    except Exception as exc:
+        return {"nodes": [], "edges": [], "error": str(exc)}
+
+    stem = path.stem
+    str_path = str(path)
+    nodes: list[dict] = []
+    edges: list[dict] = []
+    seen_ids: set[str] = set()
+
+    def add_node(nid: str, label: str, line: int) -> None:
+        if nid not in seen_ids:
+            seen_ids.add(nid)
+            nodes.append({
+                "id": nid,
+                "label": label,
+                "file_type": "code",
+                "source_file": str_path,
+                "source_location": f"L{line}",
+            })
+
+    def add_edge(src: str, tgt: str, relation: str, line: int,
+                 confidence: str = "EXTRACTED", weight: float = 1.0) -> None:
+        edges.append({
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": confidence,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": weight,
+        })
+
+    file_nid = _make_id(str(path))
+    add_node(file_nid, path.name, 1)
+
+    # ── helpers ────────────────────────────────────────────────────────────────
+
+    def _object_name(node) -> str | None:
+        """Return the qualified name from an object_reference node (schema.name or name)."""
+        schema_id = node.child_by_field_name("schema")
+        name_id = node.child_by_field_name("name")
+        if name_id:
+            name = _read_text(name_id, source)
+            if schema_id:
+                return f"{_read_text(schema_id, source)}.{name}"
+            return name
+        # Fallback: first identifier child
+        for child in node.children:
+            if child.type == "identifier":
+                return _read_text(child, source)
+        return None
+
+    def _first_object_ref_name(node) -> str | None:
+        """Find the first object_reference descendant and return its name."""
+        for child in node.children:
+            if child.type == "object_reference":
+                return _object_name(child)
+            name = _first_object_ref_name(child)
+            if name:
+                return name
+        return None
+
+    def _first_identifier_name(node) -> str | None:
+        """Return the first identifier child's text."""
+        for child in node.children:
+            if child.type == "identifier":
+                return _read_text(child, source)
+        return None
+
+    # ── body scanners ──────────────────────────────────────────────────────────
+
+    # DDL node types that define standalone objects we track
+    _DDL_TYPES = frozenset({
+        "create_function", "create_procedure", "create_table",
+        "create_view", "create_materialized_view", "create_trigger", "create_index",
+    })
+
+    def _walk_body(node, owner_nid: str, defined_nids: set[str]) -> None:
+        """Recursively scan a body node for calls and table references."""
+        t = node.type
+
+        # Skip nested DDL (inner CREATE) — they're handled at top level
+        if t in _DDL_TYPES:
+            return
+
+        if t == "invocation":
+            # object_reference child = the callee name (first one)
+            for child in node.children:
+                if child.type == "object_reference":
+                    callee = _object_name(child)
+                    if callee:
+                        tgt_nid = _make_id(stem, callee)
+                        add_edge(owner_nid, tgt_nid, "calls",
+                                 node.start_point[0] + 1, confidence="EXTRACTED")
+                    break
+
+        elif t == "object_reference":
+            # Table/view reference in FROM / JOIN / etc.
+            name = _object_name(node)
+            if name:
+                tgt_nid = _make_id(stem, name)
+                if tgt_nid != owner_nid and tgt_nid not in defined_nids:
+                    add_edge(owner_nid, tgt_nid, "references_table",
+                             node.start_point[0] + 1,
+                             confidence="EXTRACTED", weight=0.8)
+
+        for child in node.children:
+            _walk_body(child, owner_nid, defined_nids)
+
+    # ── top-level DDL walker ───────────────────────────────────────────────────
+
+    # Collect (owner_nid, body_nodes, defined_nids) for second-pass body scanning
+    _deferred_bodies: list[tuple[str, list, set[str]]] = []
+    # Track all DDL-defined node IDs so we can skip self-references
+    _defined_nids: set[str] = set()
+
+    def _walk_ddl(node) -> None:
+        t = node.type
+
+        if t in ("program", "statement", "block", "transaction"):
+            for child in node.children:
+                _walk_ddl(child)
+            return
+
+        line = node.start_point[0] + 1
+
+        if t == "create_function":
+            name = _first_object_ref_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, f"{name}()", line)
+                add_edge(file_nid, nid, "contains", line)
+                # Collect body for second pass
+                body_nodes = [c for c in node.children
+                               if c.type in ("function_body", "block")]
+                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+
+        elif t == "create_procedure":
+            name = _first_object_ref_name(node)
+            if name is None:
+                name = _first_identifier_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, f"{name}()", line)
+                add_edge(file_nid, nid, "contains", line)
+                body_nodes = [c for c in node.children
+                               if c.type in ("procedure_body", "block")]
+                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+
+        elif t == "create_table":
+            name = _first_object_ref_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, name, line)
+                add_edge(file_nid, nid, "contains", line)
+
+        elif t in ("create_view", "create_materialized_view"):
+            name = _first_object_ref_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, name, line)
+                add_edge(file_nid, nid, "contains", line)
+                body_nodes = [c for c in node.children if c.type == "create_query"]
+                _deferred_bodies.append((nid, body_nodes, _defined_nids))
+
+        elif t == "create_trigger":
+            # trigger name is first identifier child (not object_reference)
+            name = _first_identifier_name(node)
+            if name is None:
+                name = _first_object_ref_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, name, line)
+                add_edge(file_nid, nid, "contains", line)
+
+        elif t == "create_index":
+            # index name comes from the "column" field or first identifier
+            col_field = node.child_by_field_name("column")
+            name = _read_text(col_field, source) if col_field else _first_identifier_name(node)
+            if name:
+                nid = _make_id(stem, name)
+                _defined_nids.add(nid)
+                add_node(nid, name, line)
+                add_edge(file_nid, nid, "contains", line)
+
+        elif t == "ERROR":
+            # Fallback: some grammars (e.g. MySQL-style bodies) fail to parse
+            # CREATE FUNCTION/PROCEDURE as typed nodes; extract via regex.
+            node_text = source[node.start_byte:node.end_byte].decode("utf-8", "replace")
+            for kw, label_suffix in (("PROCEDURE", "()"), ("FUNCTION", "()")):
+                m = re.search(
+                    rf"CREATE\s+{kw}\s+([A-Za-z_]\w*)", node_text, re.IGNORECASE
+                )
+                if m:
+                    err_name = m.group(1)
+                    err_nid = _make_id(stem, err_name)
+                    if err_nid not in seen_ids:
+                        _defined_nids.add(err_nid)
+                        add_node(err_nid, f"{err_name}{label_suffix}", line)
+                        add_edge(file_nid, err_nid, "contains", line)
+                    break
+            # Also recurse into ERROR children so nested valid DDL isn't skipped
+            for child in node.children:
+                _walk_ddl(child)
+
+    _walk_ddl(root)
+
+    # Second pass: scan bodies for calls and table references
+    for owner_nid, body_nodes, defined_set in _deferred_bodies:
+        for body in body_nodes:
+            _walk_body(body, owner_nid, defined_set)
+
+    return {"nodes": nodes, "edges": edges}
+
+
 # ── Go extractor (custom walk) ────────────────────────────────────────────────
 
 def extract_go(path: Path) -> dict:
@@ -3384,6 +3629,7 @@ def extract(paths: list[Path], cache_root: Path | None = None) -> dict:
         ".m": extract_objc,
         ".mm": extract_objc,
         ".jl": extract_julia,
+        ".sql": extract_sql,
         ".vue": extract_js,
         ".svelte": extract_js,
         ".dart": extract_dart,

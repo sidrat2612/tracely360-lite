@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracely360"
-version = "0.4.28"
+version = "0.4.29"
 description = "Turn any folder of code, docs, papers, images, or videos into a queryable knowledge graph — no LLM required for AST extraction"
 readme = "README.md"
 license = "Apache-2.0"
@@ -61,6 +61,7 @@ dependencies = [
     "tree-sitter-scala",
     "tree-sitter-swift",
     "tree-sitter-typescript",
+    "tree-sitter-sql",
     "tree-sitter-verilog",
     "tree-sitter-zig",
 ]

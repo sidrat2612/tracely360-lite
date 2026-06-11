@@ -1,11 +1,11 @@
-"""Tests for language extractors: Java, C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Go, Julia."""
+"""Tests for language extractors: Java, C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Go, Julia, SQL."""
 from __future__ import annotations
 from pathlib import Path
 import pytest
 from tracely360.extract import (
     extract_java, extract_c, extract_cpp, extract_ruby,
     extract_csharp, extract_kotlin, extract_scala, extract_php,
-    extract_swift, extract_go, extract_julia,
+    extract_swift, extract_go, extract_julia, extract_sql,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -557,6 +557,49 @@ def test_julia_finds_calls():
 
 def test_julia_no_dangling_edges():
     r = extract_julia(FIXTURES / "sample.jl")
+    node_ids = {n["id"] for n in r["nodes"]}
+    for e in r["edges"]:
+        assert e["source"] in node_ids, f"Dangling source: {e}"
+
+
+# ── SQL ──────────────────────────────────────────────────────────────────────
+
+def test_sql_no_error():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert "error" not in r
+
+def test_sql_finds_tables():
+    r = extract_sql(FIXTURES / "sample.sql")
+    labels = _labels(r)
+    assert any("users" in l for l in labels)
+    assert any("orders" in l for l in labels)
+
+def test_sql_finds_function():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any("get_user_total" in l for l in _labels(r))
+
+def test_sql_finds_procedure():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any("create_order" in l for l in _labels(r))
+
+def test_sql_finds_view():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any("active_user_orders" in l for l in _labels(r))
+
+def test_sql_finds_trigger():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any("after_order_insert" in l for l in _labels(r))
+
+def test_sql_contains_edges():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any(e["relation"] == "contains" for e in r["edges"])
+
+def test_sql_finds_calls():
+    r = extract_sql(FIXTURES / "sample.sql")
+    assert any(e["relation"] == "calls" for e in r["edges"])
+
+def test_sql_no_dangling_edges():
+    r = extract_sql(FIXTURES / "sample.sql")
     node_ids = {n["id"] for n in r["nodes"]}
     for e in r["edges"]:
         assert e["source"] in node_ids, f"Dangling source: {e}"
