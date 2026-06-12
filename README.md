@@ -7,8 +7,9 @@ Turn any folder of code, docs, papers, images, or videos into a queryable knowle
 
 ## Highlights
 
-- **Deterministic AST extraction** — 25 languages via tree-sitter (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Lua, Zig, PowerShell, Elixir, Objective-C, Julia, Verilog, SystemVerilog, Vue, Svelte, Dart)
+- **Deterministic AST extraction** — 27 languages via tree-sitter (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Lua, Zig, PowerShell, Elixir, Objective-C, Julia, Verilog, SystemVerilog, Vue, Svelte, Dart, **SQL, PostgreSQL**)
 - **API endpoint discovery** — Flask, FastAPI, Django, Express, NestJS, Next.js, Spring, Laravel, Rails, Gin, Echo, Chi, ASP.NET
+- **SQL & PostgreSQL** — stored procedures, functions, triggers, views, materialized views, CTEs, and cross-routine call edges extracted from `.sql` files; auto-detects PL/pgSQL dialect and routes to a dedicated PostgreSQL parser
 - **Multimodal** — code, markdown, PDFs, images, screenshots, diagrams, whiteboard photos, video and audio (transcribed via faster-whisper with domain-aware prompts)
 - **Leiden community detection** — topology-based clustering, no embeddings, no LLM calls
 - **Multiple exports** — interactive HTML (vis.js), persistent JSON, Obsidian wiki, SVG, markdown report
@@ -128,6 +129,18 @@ Static analysis only — no code execution, no port probing. Detects route decor
 - **C#**: ASP.NET (`[HttpGet]`, `MapGet`)
 
 Detected routes appear as `endpoint` nodes in the graph and in the API Endpoints section of the report.
+
+## SQL & PostgreSQL support
+
+Drop `.sql` files anywhere in the workspace. tracely360 automatically:
+
+- Detects PL/pgSQL markers (`$$`, `LANGUAGE plpgsql`, `RETURNS TRIGGER`, etc.) and uses the dedicated PostgreSQL tree-sitter parser.
+- Falls back to the generic SQL parser for other dialects.
+- Extracts `function`, `procedure`, `trigger`, `view`, and `materialized_view` nodes.
+- Produces `calls` edges for `CALL` / `EXECUTE` / `PERFORM` statements inside routine bodies.
+- Produces `references_table` edges linking routines to the tables they read or write.
+- Handles schema-qualified identifiers (`schema.routine`).
+- Recovers from parse errors using body-text heuristics so partial extraction is never silently lost.
 
 ## Environment variables
 
