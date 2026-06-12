@@ -2013,7 +2013,8 @@ def extract_postgresql(path: Path) -> dict:
     seen_ids: set[str] = set()
     relation_names: dict[str, str] = {}
     routine_names: dict[str, str] = {}
-    deferred_bodies: list[tuple[str, str, int]] = []
+    deferred_bodies: list[tuple[str, str, int, bool]] = []
+    plpgsql_parser = Parser(Language(tspostgres.language_plpgsql()))
 
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
@@ -2091,6 +2092,69 @@ def extract_postgresql(path: Path) -> dict:
             if re.search(rf"(?<![\w.]){re.escape(routine_name)}\s*\(", body_text, re.IGNORECASE):
                 add_edge(owner_nid, target_nid, "calls", line, confidence="EXTRACTED")
 
+    def scan_plpgsql_body(owner_nid: str, body_text: str, line: int) -> None:
+        body_source = body_text.encode("utf-8")
+        tree = plpgsql_parser.parse(body_source)
+
+        def node_source_text(node) -> str:
+            return body_source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+
+        def add_relation_by_name(name: str) -> None:
+            target_nid = relation_names.get(name)
+            if target_nid and target_nid != owner_nid:
+                add_edge(owner_nid, target_nid, "references_table", line,
+                         confidence="EXTRACTED", weight=0.8)
+
+        def add_routine_by_name(name: str) -> None:
+            target_nid = routine_names.get(name)
+            if target_nid and target_nid != owner_nid:
+                add_edge(owner_nid, target_nid, "calls", line, confidence="EXTRACTED")
+
+        def maybe_extract_relation(expr_text: str) -> None:
+            match = re.search(r"\b(?:FROM|INTO|UPDATE|DELETE\s+FROM|JOIN)\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)",
+                              expr_text, re.IGNORECASE)
+            if match:
+                add_relation_by_name(match.group(1))
+
+        def walk(node) -> None:
+            t = node.type
+            text = node_source_text(node)
+
+            if t == "stmt_perform":
+                match = re.search(r"((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*\(", text)
+                if match:
+                    add_routine_by_name(match.group(1))
+                from_match = re.search(r"\bFROM\s+((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)", text, re.IGNORECASE)
+                if from_match and from_match.group(1) in relation_names:
+                    add_relation_by_name(from_match.group(1))
+
+            elif t == "stmt_call":
+                match = re.search(r"((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*)\s*\(", text)
+                if match:
+                    add_routine_by_name(match.group(1))
+
+            elif t == "stmt_execsql":
+                maybe_extract_relation(text)
+                for relation_name in relation_names:
+                    if re.search(rf"(?<![\w.]){re.escape(relation_name)}(?![\w.])", text, re.IGNORECASE):
+                        add_relation_by_name(relation_name)
+                for routine_name in routine_names:
+                    if re.search(rf"(?<![\w.]){re.escape(routine_name)}\s*\(", text, re.IGNORECASE):
+                        add_routine_by_name(routine_name)
+
+            elif t == "stmt_dynexecute":
+                format_match = re.search(r"format\([^)]*'([A-Za-z_][A-Za-z0-9_]*)'", text, re.IGNORECASE)
+                if format_match:
+                    candidate = format_match.group(1)
+                    for relation_name in relation_names:
+                        if relation_name.split(".")[-1].lower() == candidate.lower():
+                            add_relation_by_name(relation_name)
+
+            for child in node.children:
+                walk(child)
+
+        walk(tree.root_node)
+
     file_nid = _make_id(str(path))
     add_node(file_nid, path.name, 1)
 
@@ -2118,7 +2182,7 @@ def extract_postgresql(path: Path) -> dict:
                 select_node = first_descendant(node, {"SelectStmt"})
                 select_text = node_text(select_node)
                 if select_text:
-                    deferred_bodies.append((owner_nid, select_text, line))
+                    deferred_bodies.append((owner_nid, select_text, line, False))
             return
 
         if t == "CreateMatViewStmt":
@@ -2129,7 +2193,7 @@ def extract_postgresql(path: Path) -> dict:
                 select_node = first_descendant(node, {"SelectStmt"})
                 select_text = node_text(select_node)
                 if select_text:
-                    deferred_bodies.append((owner_nid, select_text, line))
+                    deferred_bodies.append((owner_nid, select_text, line, False))
             return
 
         if t == "CreateFunctionStmt":
@@ -2141,14 +2205,23 @@ def extract_postgresql(path: Path) -> dict:
                 dollar_node = first_descendant(func_as_node, {"dollar_quoted_string"}) if func_as_node else None
                 body_text = extract_dollar_body(dollar_node) if dollar_node else None
                 if body_text:
-                    deferred_bodies.append((owner_nid, body_text, line))
+                    deferred_bodies.append((owner_nid, body_text, line, "language plpgsql" in body_text.lower() or "begin" in body_text.lower()))
             return
 
         if t == "CreateTrigStmt":
             name_node = first_child(node, "name")
             name = node_text(name_node)
             if name:
-                register_node(name, line)
+                owner_nid = register_node(name, line)
+                relation_node = first_child(node, "qualified_name")
+                relation_name = node_text(relation_node)
+                if relation_name and relation_name in relation_names:
+                    add_edge(owner_nid, relation_names[relation_name], "references_table", line,
+                             confidence="EXTRACTED", weight=0.8)
+                func_name_node = first_child(node, "func_name")
+                func_name = node_text(func_name_node)
+                if func_name and func_name in routine_names:
+                    add_edge(owner_nid, routine_names[func_name], "calls", line, confidence="EXTRACTED")
             return
 
         if t == "IndexStmt":
@@ -2163,7 +2236,9 @@ def extract_postgresql(path: Path) -> dict:
 
     walk(root)
 
-    for owner_nid, body_text, line in deferred_bodies:
+    for owner_nid, body_text, line, is_plpgsql in deferred_bodies:
+        if is_plpgsql:
+            scan_plpgsql_body(owner_nid, body_text, line)
         scan_body_text(owner_nid, body_text, line)
 
     return {"nodes": nodes, "edges": edges}
@@ -2296,6 +2371,23 @@ def extract_sql(path: Path) -> dict:
             return None
         return match.group(1)
 
+    def _scan_body_text(owner_nid: str, body_text: str, line: int) -> None:
+        known_relation_names = {nid: label.strip("()") for nid, label in ((n["id"], n["label"]) for n in nodes) if nid in relation_nids}
+        known_routine_names = {nid: label.strip("()") for nid, label in ((n["id"], n["label"]) for n in nodes) if nid in routine_nids}
+
+        for target_nid, relation_name in known_relation_names.items():
+            if target_nid == owner_nid:
+                continue
+            if re.search(rf"(?<![\w.]){re.escape(relation_name)}(?![\w.])", body_text, re.IGNORECASE):
+                add_edge(owner_nid, target_nid, "references_table", line,
+                         confidence="EXTRACTED", weight=0.8)
+
+        for target_nid, routine_name in known_routine_names.items():
+            if target_nid == owner_nid:
+                continue
+            if re.search(rf"(?<![\w.]){re.escape(routine_name)}\s*\(", body_text, re.IGNORECASE):
+                add_edge(owner_nid, target_nid, "calls", line, confidence="EXTRACTED")
+
     def _register_node(name: str, line: int, *, is_routine: bool = False,
                        is_relation: bool = False, suffix: str = "") -> str:
         nid = _make_id(stem, name)
@@ -2314,7 +2406,12 @@ def extract_sql(path: Path) -> dict:
             _deferred_bodies.append((owner_nid, body_nodes))
 
     def _body_statement_nodes(node) -> list:
-        return [child for child in node.children if child.type in ("function_body", "procedure_body", "block", "create_query", "statement")]
+        body_nodes = [child for child in node.children if child.type in ("function_body", "procedure_body", "block", "create_query", "statement")]
+        if body_nodes:
+            return body_nodes
+        if node.type == "ERROR":
+            return [node]
+        return []
 
     # ── body scanners ──────────────────────────────────────────────────────────
 
@@ -2461,6 +2558,8 @@ def extract_sql(path: Path) -> dict:
     for owner_nid, body_nodes in _deferred_bodies:
         for body in body_nodes:
             _walk_body(body, owner_nid, relation_nids, routine_nids)
+            body_text = source[body.start_byte:body.end_byte].decode("utf-8", errors="replace")
+            _scan_body_text(owner_nid, body_text, body.start_point[0] + 1)
 
     return {"nodes": nodes, "edges": edges}
 

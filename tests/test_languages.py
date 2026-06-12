@@ -686,3 +686,48 @@ def test_extract_postgresql_direct():
     labels = _labels(r)
     assert any("public.get_order_total" in label for label in labels)
     assert any("public.create_order" in label for label in labels)
+
+def test_postgresql_call_cte_matview_and_trigger_edges():
+    r = extract_sql(FIXTURES / "sample_postgresql.sql")
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    labels = _labels(r)
+    assert any("public.mv_orders" in label for label in labels)
+    assert any("public.audit_orders" in label for label in labels)
+    assert any("public.rebuild_totals" in label for label in labels)
+
+    call_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "calls"
+    }
+    ref_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "references_table"
+    }
+
+    assert ("public.create_order()", "public.rebuild_totals()") in call_labels
+    assert ("public.rebuild_totals()", "public.get_order_total()") in call_labels
+    assert ("orders_after_insert", "public.audit_orders()") in call_labels
+    assert ("orders_after_insert", "public.orders") in ref_labels
+    assert ("public.audit_orders()", "public.audit_log") in ref_labels
+    assert ("public.mv_orders", "public.orders") in ref_labels
+
+
+def test_sql_advanced_generic_call_and_matview():
+    r = extract_sql(FIXTURES / "sample_sql_advanced.sql")
+    nodes_by_id = {node["id"]: node for node in r["nodes"]}
+    labels = _labels(r)
+    assert any("sales.mv_orders" in label for label in labels)
+    call_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "calls"
+    }
+    ref_labels = {
+        (nodes_by_id[e["source"]]["label"], nodes_by_id[e["target"]]["label"])
+        for e in r["edges"]
+        if e["relation"] == "references_table"
+    }
+    assert ("sales.recompute()", "sales.refresh_order_totals()") in call_labels
+    assert ("sales.mv_orders", "sales.orders") in ref_labels
