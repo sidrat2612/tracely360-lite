@@ -67,6 +67,40 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
 
+  test-testpypi-install:
+    name: Smoke test from TestPyPI
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'testpypi'
+    needs: publish-testpypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Wait for package availability and install from TestPyPI
+        shell: bash
+        run: |
+          for i in {1..20}; do
+            python -m pip install --upgrade pip
+            if python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple tracely360; then
+              break
+            fi
+            if [[ "$i" -eq 20 ]]; then
+              echo "Package not available on TestPyPI after retries"
+              exit 1
+            fi
+            echo "Package not visible yet, retrying in 30s..."
+            sleep 30
+          done
+
+      - name: Verify installed package
+        run: |
+          python -c "import tracely360; print(tracely360.__version__)"
+          tracely360 --help >/dev/null
+
   publish-pypi:
     name: Upload release to PyPI
     if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'pypi')
@@ -86,3 +120,37 @@ jobs:
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@v1.14.0
+
+  test-pypi-install:
+    name: Smoke test from PyPI
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'pypi')
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Wait for package availability and install from PyPI
+        shell: bash
+        run: |
+          for i in {1..20}; do
+            python -m pip install --upgrade pip
+            if python -m pip install tracely360; then
+              break
+            fi
+            if [[ "$i" -eq 20 ]]; then
+              echo "Package not available on PyPI after retries"
+              exit 1
+            fi
+            echo "Package not visible yet, retrying in 30s..."
+            sleep 30
+          done
+
+      - name: Verify installed package
+        run: |
+          python -c "import tracely360; print(tracely360.__version__)"
+          tracely360 --help >/dev/null
