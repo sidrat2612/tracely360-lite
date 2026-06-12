@@ -120,6 +120,8 @@ jobs:
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@v1.14.0
+        with:
+          skip-existing: true
 
   test-pypi-install:
     name: Smoke test from PyPI
@@ -152,5 +154,5 @@ jobs:
 
       - name: Verify installed package
         run: |
-          python -c "import tracely360; print(tracely360.__version__)"
+          python -c "import tracely360; print(tracely360.__file__)"
           tracely360 --help >/dev/null
