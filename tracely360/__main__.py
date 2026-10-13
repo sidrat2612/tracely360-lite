@@ -1120,7 +1120,7 @@ def main() -> None:
             sys.exit(1)
         from tracely360.serve import _score_nodes, _bfs, _dfs, _subgraph_to_text
         from tracely360.security import sanitize_label
-        from networkx.readwrite import json_graph
+        from tracely360.build import graph_from_node_link
         question = sys.argv[2]
         use_dfs = "--dfs" in sys.argv
         budget = 2000
@@ -1157,10 +1157,7 @@ def main() -> None:
             import json as _json
             import networkx as _nx
             _raw = _json.loads(gp.read_text(encoding="utf-8"))
-            try:
-                G = json_graph.node_link_graph(_raw, edges="links")
-            except TypeError:
-                G = json_graph.node_link_graph(_raw)
+            G = graph_from_node_link(_raw)
         except Exception as exc:
             print(f"error: could not load graph: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -1196,7 +1193,7 @@ def main() -> None:
             print("Usage: tracely360 path \"<source>\" \"<target>\" [--graph path]", file=sys.stderr)
             sys.exit(1)
         from tracely360.serve import _score_nodes
-        from networkx.readwrite import json_graph
+        from tracely360.build import graph_from_node_link
         import networkx as _nx
         source_label = sys.argv[2]
         target_label = sys.argv[3]
@@ -1210,10 +1207,7 @@ def main() -> None:
             print(f"error: graph file not found: {gp}", file=sys.stderr)
             sys.exit(1)
         _raw = json.loads(gp.read_text(encoding="utf-8"))
-        try:
-            G = json_graph.node_link_graph(_raw, edges="links")
-        except TypeError:
-            G = json_graph.node_link_graph(_raw)
+        G = graph_from_node_link(_raw)
         src_scored = _score_nodes(G, [t.lower() for t in source_label.split()])
         tgt_scored = _score_nodes(G, [t.lower() for t in target_label.split()])
         if not src_scored:
@@ -1246,7 +1240,7 @@ def main() -> None:
             print("Usage: tracely360 explain \"<node>\" [--graph path]", file=sys.stderr)
             sys.exit(1)
         from tracely360.serve import _find_node
-        from networkx.readwrite import json_graph
+        from tracely360.build import graph_from_node_link
         label = sys.argv[2]
         graph_path = "tracely360-out/graph.json"
         args = sys.argv[3:]
@@ -1258,10 +1252,7 @@ def main() -> None:
             print(f"error: graph file not found: {gp}", file=sys.stderr)
             sys.exit(1)
         _raw = json.loads(gp.read_text(encoding="utf-8"))
-        try:
-            G = json_graph.node_link_graph(_raw, edges="links")
-        except TypeError:
-            G = json_graph.node_link_graph(_raw)
+        G = graph_from_node_link(_raw)
         matches = _find_node(G, label)
         if not matches:
             print(f"No node matching '{label}' found.")

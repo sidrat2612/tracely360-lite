@@ -37,6 +37,22 @@ def _normalize_id(s: str) -> str:
     return cleaned.strip("_").lower()
 
 
+def graph_from_node_link(data: dict) -> nx.Graph:
+    """Load a node-link graph (graph.json) whose edges are under "links" (to_json) or "edges".
+
+    Current NetworkX (e.g. 3.7) writes "edges" by default, so graphs saved with its defaults use that key.
+    """
+    from networkx.readwrite import json_graph
+
+    edges_key = "links" if "links" in data else "edges"
+    if edges_key not in data:
+        raise ValueError('graph JSON has no "links" or "edges" list')
+    try:
+        return json_graph.node_link_graph(data, edges=edges_key)
+    except TypeError:  # NetworkX < 3.4: no `edges` parameter, reads "links"
+        return json_graph.node_link_graph({**data, "links": data[edges_key]})
+
+
 def build_from_json(extraction: dict, *, directed: bool = False) -> nx.Graph:
     """Build a NetworkX graph from an extraction dict.
 

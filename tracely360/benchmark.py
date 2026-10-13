@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import networkx as nx
-from networkx.readwrite import json_graph
+from tracely360.build import graph_from_node_link
 
 
 _CHARS_PER_TOKEN = 4  # standard approximation
@@ -76,10 +76,7 @@ def run_benchmark(
     Returns dict with: corpus_tokens, avg_query_tokens, reduction_ratio, per_question
     """
     data = json.loads(Path(graph_path).read_text(encoding="utf-8"))
-    try:
-        G = json_graph.node_link_graph(data, edges="links")
-    except TypeError:
-        G = json_graph.node_link_graph(data)
+    G = graph_from_node_link(data)
 
     if corpus_words is None:
         # Rough estimate: each node label is ~3 words, plus source context

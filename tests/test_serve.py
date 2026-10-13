@@ -146,6 +146,14 @@ def test_load_graph_roundtrip(tmp_path):
     assert G2.number_of_nodes() == G.number_of_nodes()
     assert G2.number_of_edges() == G.number_of_edges()
 
+def test_load_graph_with_edges_key(tmp_path):
+    """Current NetworkX (e.g. 3.7) writes node-link edges under "edges" by default."""
+    G = _make_graph()
+    p = tmp_path / "graph.json"
+    p.write_text(json.dumps(json_graph.node_link_data(G, edges="edges")))
+    G2 = _load_graph(str(p))
+    assert G2.number_of_edges() == G.number_of_edges()
+
 def test_load_graph_missing_file(tmp_path):
     tracely360_dir = tmp_path / "tracely360-out"
     tracely360_dir.mkdir()

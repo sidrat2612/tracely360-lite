@@ -39,3 +39,25 @@ def test_build_merges_multiple_extractions():
     G = build([ext1, ext2])
     assert G.number_of_nodes() == 2
     assert G.number_of_edges() == 1
+
+
+# --- graph_from_node_link ---
+
+def _node_link(key):
+    import networkx as nx
+    from networkx.readwrite import json_graph
+    G = nx.Graph()
+    G.add_edge("a", "b", relation="calls")
+    return json_graph.node_link_data(G, edges=key)
+
+def test_graph_from_node_link_reads_links_and_edges():
+    from tracely360.build import graph_from_node_link
+    for key in ("links", "edges"):
+        G = graph_from_node_link(_node_link(key))
+        assert G.number_of_edges() == 1 and G.edges["a", "b"]["relation"] == "calls"
+
+def test_graph_from_node_link_rejects_data_without_edges():
+    import pytest
+    from tracely360.build import graph_from_node_link
+    with pytest.raises(ValueError, match="links"):
+        graph_from_node_link({"directed": False, "multigraph": False, "graph": {}, "nodes": []})

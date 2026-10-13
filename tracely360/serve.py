@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 import networkx as nx
-from networkx.readwrite import json_graph
+from tracely360.build import graph_from_node_link
 from tracely360.security import sanitize_label
 from tracely360.query import (  # noqa: F401 - helpers re-exported for the CLI and tests
     _bfs,
@@ -31,10 +31,7 @@ def _load_graph(graph_path: str) -> nx.Graph:
             raise FileNotFoundError(f"Graph file not found: {resolved}")
         safe = resolved
         data = json.loads(safe.read_text(encoding="utf-8"))
-        try:
-            return json_graph.node_link_graph(data, edges="links")
-        except TypeError:
-            return json_graph.node_link_graph(data)
+        return graph_from_node_link(data)
     except (ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)

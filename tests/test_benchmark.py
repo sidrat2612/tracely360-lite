@@ -117,3 +117,10 @@ def test_print_benchmark_error_message(capsys):
     print_benchmark({"error": "test error message"})
     out = capsys.readouterr().out
     assert "test error message" in out
+
+
+def test_run_benchmark_reads_graphs_with_edges_key(tmp_path):
+    graph_file = tmp_path / "graph.json"
+    graph_file.write_text(json.dumps(json_graph.node_link_data(_make_graph(), edges="edges")))
+    result = run_benchmark(str(graph_file), corpus_words=5_000)
+    assert result["edges"] == 4
