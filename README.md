@@ -76,6 +76,12 @@ python -m tracely360.serve
 
 Exposes the graph over stdio. Tools: `query_graph`, `get_node`, `get_neighbors`, `get_community`, `god_nodes`, `graph_stats`, `shortest_path`.
 
+The same operations are library functions that take a NetworkX graph and return plain data:
+
+```python
+from tracely360 import query_graph, get_node, get_neighbors, get_community, god_nodes, graph_stats, shortest_path
+```
+
 ## Outputs
 
 All results land in `tracely360-out/`:

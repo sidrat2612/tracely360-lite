@@ -4,6 +4,12 @@ Full release notes: [GitHub Releases](https://github.com/sidrat2612/tracely360-l
 
 ## Unreleased
 
+## 0.4.31 (2026-10-13)
+
+- Add: `query_graph`, `get_node`, `get_neighbors`, `get_community`, `graph_stats` and `shortest_path` as library functions in `tracely360.query`, exported from the package with `graph_diff`; they return plain, JSON-serializable data
+- Change: the MCP tools render those functions as text; their output is unchanged
+- Fix: `query_graph` breadth-first traversal and the MCP `query_graph` text no longer depend on set iteration order, so results are identical across runs
+
 ## 0.4.28 (2026-05-15)
 
 - Add: deterministic API endpoint extraction for Flask/FastAPI/Django, Express/NestJS/Next.js, Spring, Laravel, Rails, Gin/Echo/Chi, and ASP.NET; endpoint nodes carry `method`, `path`, and `framework`; handler links use `exposes_endpoint`

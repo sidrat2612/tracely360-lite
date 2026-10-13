@@ -151,3 +151,59 @@ def test_load_graph_missing_file(tmp_path):
     tracely360_dir.mkdir()
     with pytest.raises(SystemExit):
         _load_graph(str(tracely360_dir / "nonexistent.json"))
+
+
+# --- MCP tool text (rendered from tracely360.query) ---
+
+def _tools():
+    from tracely360.serve import _tool_handlers
+    G = _make_graph()
+    return _tool_handlers(G, _communities_from_graph(G))
+
+
+def test_tool_query_graph_text():
+    text = _tools()["query_graph"]({"question": "extract", "depth": 1})
+    assert text.startswith("Traversal: BFS depth=1 | Start: ['extract'] | 2 nodes found\n\n")
+    assert "EDGE extract --calls [INFERRED]--> cluster" in text
+    assert _tools()["query_graph"]({"question": "zz"}) == "No matching nodes found."
+
+
+def test_tool_get_node_text():
+    assert _tools()["get_node"]({"label": "Build"}) == (
+        "Node: build\n  ID: n3\n  Source: build.py L1\n  Type: \n  Cluster: 1\n  Degree: 2"
+    )
+    assert _tools()["get_node"]({"label": "Nope"}) == "No node matching 'nope' found."
+
+
+def test_tool_get_neighbors_text():
+    assert _tools()["get_neighbors"]({"label": "build", "relation_filter": "USE"}) == (
+        "Neighbors of build:\n  --> report [uses] [EXTRACTED]"
+    )
+
+
+def test_tool_get_community_text():
+    assert _tools()["get_community"]({"community_id": 0}) == (
+        "Cluster 0 (2 nodes):\n  extract [extract.py]\n  cluster [cluster.py]"
+    )
+    assert _tools()["get_community"]({"community_id": 9}) == "Cluster 9 not found."
+
+
+def test_tool_graph_stats_text():
+    assert _tools()["graph_stats"]({}) == (
+        "Nodes: 5\nEdges: 3\nClusters: 3\nEXTRACTED: 67%\nINFERRED: 33%\nAMBIGUOUS: 0%\n"
+    )
+
+
+def test_tool_shortest_path_text():
+    tools = _tools()
+    assert tools["shortest_path"]({"source": "extract", "target": "report"}) == (
+        "Shortest path (3 hops):\n  extract --calls [INFERRED]--> cluster --imports [EXTRACTED]--> build"
+        " --uses [EXTRACTED]--> report"
+    )
+    assert tools["shortest_path"]({"source": "extract", "target": "report", "max_hops": 2}) == (
+        "Path exceeds max_hops=2 (3 hops found)."
+    )
+    assert tools["shortest_path"]({"source": "extract", "target": "isolated"}) == (
+        "No path found between 'extract' and 'isolated'."
+    )
+    assert tools["shortest_path"]({"source": "nope", "target": "report"}) == "No node matching source 'nope' found."

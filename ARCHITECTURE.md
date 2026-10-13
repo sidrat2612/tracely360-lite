@@ -20,6 +20,7 @@ detect() → extract() → build_from_json() → cluster() + score_all()
 | `report.py` | `generate(...)` | Render `GRAPH_REPORT.md` — corpus check, communities, god nodes, surprises, endpoints, gaps |
 | `export.py` | `to_json()`, `to_html()`, `to_svg()`, `to_canvas()` | Multi-format graph export (vis.js HTML, node-link JSON, SVG, canvas) |
 | `wiki.py` | `to_wiki(G, communities, output_dir)` | Wikipedia-style markdown vault with bidirectional wikilinks |
+| `query.py` | `query_graph(G, question)`, `get_node(G, label)`, `get_neighbors(G, label)`, `get_community(G, id)`, `graph_stats(G)`, `shortest_path(G, source, target)` | Graph query operations as library functions returning plain data; the MCP tools render them as text |
 | `serve.py` | `serve(graph_path)` | MCP stdio server — 7 tools for agent access to the graph |
 | `ingest.py` | `ingest(url, target_dir)` | Fetch URLs (tweets, arXiv, PDFs, images, YouTube, web pages) into tracely360-ready files |
 | `transcribe.py` | `transcribe(video_path)`, `transcribe_all(video_files)` | faster-whisper transcription with domain-aware prompts from corpus god nodes |
@@ -92,7 +93,7 @@ Leiden algorithm (graspologic if available, else NetworkX Louvain fallback). Com
 
 ## MCP tools
 
-7 tools exposed via `serve.py`:
+7 tools exposed via `serve.py`. Each renders a library function as text: `god_nodes` comes from `analyze.py`, the other six from `query.py`.
 
 | Tool | Purpose |
 |------|---------|
@@ -162,6 +163,7 @@ The pipeline passes plain Python dicts and NetworkX graphs between stages. Persi
 | `analyze.py` | `god_nodes(G)`, `surprising_connections(G, ...)`, `suggest_questions(G, ...)` | derive graph-level summaries and navigation hints |
 | `report.py` | `generate(...)` | render `GRAPH_REPORT.md` |
 | `export.py` | `to_json(...)`, `to_html(...)`, `to_obsidian(...)` | write graph outputs for tools and humans |
+| `query.py` | `query_graph(G, ...)`, `get_node(G, ...)`, `get_neighbors(G, ...)`, `get_community(G, ...)`, `graph_stats(G)`, `shortest_path(G, ...)` | graph query operations as library functions |
 | `serve.py` | `python -m tracely360.serve <graph.json>` | expose `graph.json` over MCP stdio |
 | `watch.py` | watch/update helpers | incremental graph rebuilds |
 | `ingest.py` | URL and file ingestion helpers | pull new corpus material into the graph |
